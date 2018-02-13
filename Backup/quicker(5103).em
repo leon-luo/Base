@@ -1,24 +1,4 @@
-/******************************************************************************
 
-  Copyright (C), 2017-2028
-
- ******************************************************************************
-  File Name     : quick.em
-  Version       : Initial Draft
-  Author        : Leon
-  Created       : 2018/2/13
-  Last Modified :
-  Description   : 按键单元
-  Function List :
-  History       :
-  1.Date        : 2018年2月10日
-    Author      : Leon
-    Modification: Created file
-******************************************************************************/
-
-/*
-配置默认作者名字
-*/
 macro author()
 {
 	author_name = getreg(MYNAME)
@@ -30,9 +10,6 @@ macro author()
 	}
 }
 
-/*
-配置选择语言类型
-*/
 macro language()
 {
 	value = getreg(LANGUAGE)
@@ -76,9 +53,6 @@ macro language()
 	}
 }
 
-/*
-自定义自动扩展命令功能
-*/
 macro AutoExpand()
 {
 	//配置信息
@@ -1724,17 +1698,21 @@ function get_source_filename_extension()
 */
 function get_curr_file_type()
 {
+	curr_handle = GetCurrentBuf()
+	if (curr_handle == hNil)// empty buffer
+		stop
+
 	index = 0
 	file_type = unknown
-	open_file = get_curr_open_file_absolute_path()
-	Msg(cat("open_file=",open_file))
+	curr_open_file_name = GetBufName(curr_handle)
+	Msg(cat("curr_open_file_name:",curr_open_file_name))
 	extension = get_header_filename_extension()
 	num = extension.num
 	handle = extension.handle
 	while(index < num)
 	{
 		str = GetBufLine(handle, index)
-		ret = isFileType(open_file, str)
+		ret = isFileType(curr_open_file_name, str)
 		if(True == ret)
 		{
 			file_type = hxx
@@ -1750,7 +1728,7 @@ function get_curr_file_type()
 	while(index < num)
 	{
 		str = GetBufLine(handle, index)
-		ret = isFileType(open_file, str)
+		ret = isFileType(curr_open_file_name, str)
 		if(True == ret)
 		{
 			file_type = cxx
@@ -5220,9 +5198,106 @@ macro FileCreate()
 	}
 }
 
-/*
-获取当前打开文件的绝对路径
-*/
+
+macro SwitchCppAndHpp()
+{
+	hwnd = GetCurrentWnd()
+	hCurOpenBuf = GetCurrentBuf()
+	if (hCurOpenBuf == 0)// empty buffer
+	stop
+
+	// 文件类型临时缓冲区
+	strFileExt = NewBuf("strFileExtBuf")
+	ClearBuf(strFileExt)
+
+	// 头文件
+	index_hpp_begin = 0 // 头文件开始索引
+	AppendBufLine(strFileExt, ".h")
+	AppendBufLine(strFileExt, ".hpp")
+	AppendBufLine(strFileExt, ".hxx")
+
+	index_hpp_end = GetBufLineCount(strFileExt) // 头文件结束索引
+
+	// 源文件
+	index_cpp_begin = index_hpp_end // 源文件开始索引
+	AppendBufLine(strFileExt, ".c")
+	AppendBufLine(strFileExt, ".cpp")
+	AppendBufLine(strFileExt, ".cc")
+	AppendBufLine(strFileExt, ".cx")
+	AppendBufLine(strFileExt, ".cxx")
+	index_cpp_end = GetBufLineCount(strFileExt) // 源文件结束索引
+
+	curOpenFileName = GetBufName(hCurOpenBuf)
+	curOpenFileName = ParseFilenameWithExt(curOpenFileName) // 获得不包括路径的文件名
+	curOpenFileNameWithoutExt = ParseFilenameWithoutExt(curOpenFileName)
+	curOpenFileNameLen = strlen(curOpenFileName)
+	//Msg(cat("current opened no ext filename:", curOpenFileNameWithoutExt))
+
+	isCppFile = 0 // 0：未知 1：头文件 2：源文件，默认未知扩展名
+	curOpenFileExt = "" // 当前打开文件的扩展名
+	index = index_hpp_begin
+	// 遍历文件，判断文件类型
+	while(index < index_cpp_end)
+	{
+		curExt = GetBufLine(strFileExt, index)
+
+		if(isFileType(curOpenFileName, curExt) == True)// 匹配成功
+		{
+			if (index < index_hpp_end)
+				isCppFile = 1 // 当前打开文件是头文件
+			else
+				isCppFile = 2 // 源文件
+			break
+		}
+		index = index + 1
+	}// while(index < index_cpp_end)
+
+	// 调试
+	// AppendBufLine(debugBuf, isCppFile)
+
+
+	index_replace_begin = index_hpp_begin
+	index_replace_end = index_hpp_end
+
+	if (isCppFile == 1) // 当前打开文件是头文件
+	{
+		index_replace_begin = index_cpp_begin
+		index_replace_end = index_cpp_end
+	}
+	else if(isCppFile == 2) // 当前打开文件是源文件
+	{
+		index_replace_begin = index_hpp_begin
+		index_replace_end = index_hpp_end
+	}
+	else // 未知类型
+	{
+		index_replace_begin = 9999
+		index_replace_end = index_replace_begin // 下面循环不会执行
+	}
+
+	index = index_replace_begin
+	while(index < index_replace_end)
+	{
+		destExt = GetBufLine(strFileExt, index)
+		// 尝试当前目标扩展名是否能够打开
+		destFilename = AddFilenameExt(curOpenFileNameWithoutExt, destExt)
+		//Msg(destFilename)
+		hCurOpenBuf = OpenBuf(destFilename)
+		if(hCurOpenBuf != hNil)
+		{
+			SetCurrentBuf(hCurOpenBuf)
+			break
+		}
+		else
+		{
+			//Msg("打开失败")
+		}
+
+		index = index + 1
+	}
+	CloseBuf(strFileExt) // 关闭缓冲区
+}
+
 function get_curr_open_file_absolute_path()
 {
 	handle = GetCurrentBuf()
@@ -5239,23 +5314,25 @@ function get_curr_open_file_absolute_path()
 macro switch_cpp_hpp()
 {
 	file_type = get_curr_file_type()
-	if( cxx == file_type)
+	Msg(cat("file_type:", file_type))
+	if( hxx == file_type)
 	{
 		extension = get_header_filename_extension()
 	}
-	else if( hxx == file_type)
+	else if( cxx == file_type)
 	{
 		extension = get_source_filename_extension()
 	}
 	else
 	{
-		Msg("The file type is not recognizable.")
+		Msg("找不到文件，打开失败！")
 		return
 	}
 	num = extension.num
 	handle = extension.handle
 	
 	file_absolute_path = get_curr_open_file_absolute_path()
+	Msg(cat("file_absolute_path:", file_absolute_path))
 	index = 0
 	
 	while(index < num)
@@ -5263,10 +5340,10 @@ macro switch_cpp_hpp()
 		str = ParseFilenameWithoutExt(file_absolute_path)
 		dest_extension = GetBufLine(handle, index)
 		dest_file_path = cat(str, dest_extension)
-		open_handle = OpenBuf(dest_file_path)
-		if( 0 != open_handle)
+		h_curr_open_buffer = OpenBuf(dest_file_path)
+		if(h_curr_open_buffer != 0)
 		{
-			SetCurrentBuf(open_handle)
+			SetCurrentBuf(h_curr_open_buffer)
 			break
 		}
 		index++
