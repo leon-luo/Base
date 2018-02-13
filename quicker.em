@@ -101,7 +101,7 @@ macro AutoExpand()
 		language = 0
 	}
 	nVer = 0
-	nVer = GetVersion()
+	nVer = get_version()
 	/*取得用户名*/
 	author_name = getreg(MYNAME)
 	if(strlen( author_name ) == 0)
@@ -270,7 +270,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	else if (commend_str == "cpp")
 	{
 		DelBufLine(hbuf, ln)
-		InsertCPP(hbuf,ln)
+		insert_cplusplus(hbuf,ln)
 		return
 	}
 	else if (commend_str == "if")
@@ -432,7 +432,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "ap")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -466,7 +466,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "ab")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -485,7 +485,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "ae")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -496,7 +496,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "db")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -516,7 +516,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "de")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -527,7 +527,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "mb")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -546,7 +546,7 @@ macro ExpandProcEN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "me")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -644,7 +644,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	else if (commend_str == "cpp")
 	{
 		DelBufLine(hbuf, ln)
-		InsertCPP(hbuf,ln)
+		insert_cplusplus(hbuf,ln)
 		return
 	}
 	else if (commend_str == "if")
@@ -825,7 +825,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "ap")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -845,7 +845,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "ab")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -864,7 +864,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "ae")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -875,7 +875,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "db")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -895,7 +895,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "de")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -906,7 +906,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "mb")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -925,7 +925,7 @@ macro ExpandProcCN(author_name,wordinfo,local_line,local_line1,nVer,ln,sel)
 	}
 	else if (commend_str == "me")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -1473,7 +1473,7 @@ macro AutoInsertTraceInfoInPrj()
 	while (ifile < ifileMax)
 	{
 		filename = GetProjFileName (hprj, ifile)
-		curr_Ext = toupper(GetFileNameExt(filename))
+		curr_Ext = toupper(get_filename_extension(filename))
 		if( (curr_Ext == "C") || (curr_Ext == "CPP") )
 		{
 			hbuf = OpenBuf (filename)
@@ -1728,13 +1728,14 @@ function get_curr_file_type()
 	file_type = unknown
 	open_file = get_curr_open_file_absolute_path()
 	Msg(cat("open_file=",open_file))
+	parse_file_path_name_extension(open_file)
 	extension = get_header_filename_extension()
 	num = extension.num
 	handle = extension.handle
 	while(index < num)
 	{
 		str = GetBufLine(handle, index)
-		ret = isFileType(open_file, str)
+		ret = is_file_type(open_file, str)
 		if(True == ret)
 		{
 			file_type = hxx
@@ -1750,7 +1751,7 @@ function get_curr_file_type()
 	while(index < num)
 	{
 		str = GetBufLine(handle, index)
-		ret = isFileType(open_file, str)
+		ret = is_file_type(open_file, str)
 		if(True == ret)
 		{
 			file_type = cxx
@@ -1783,11 +1784,11 @@ macro InsertFileHeaderEN(hbuf, ln, name_str, content_str)
 	InsBufLine(hbuf, ln + 2,  "  Copyright (C), 2017-2028, HUIZHOU BLUEWAY ELECTRONICS Co., Ltd.")
 	InsBufLine(hbuf, ln + 3,  "")
 	InsBufLine(hbuf, ln + 4,  " @DividingLine@")
-	temp_str = GetFileName(GetBufName (hbuf))
+	temp_str = get_file_name(GetBufName (hbuf))
 	InsBufLine(hbuf, ln + 5,  "  File Name     : @temp_str@")
 	InsBufLine(hbuf, ln + 6,  "  Version       : Initial Draft")
 	InsBufLine(hbuf, ln + 7,  "  Author        : @name_str@")
-	SysTime = GetSysTime(1)
+	SysTime = get_system_time()
 	temp_str=SysTime.Year
 	temp1=SysTime.month
 	temp3=SysTime.day
@@ -1877,11 +1878,11 @@ macro InsertFileHeaderCN(hbuf, ln, name_str, content_str)
 	InsBufLine(hbuf, ln + 2,  "  版权所有 (C), 2017-2028 惠州市蓝微电子有限公司")
 	InsBufLine(hbuf, ln + 3,  "")
 	InsBufLine(hbuf, ln + 4,  " @DividingLine@")
-	temp_str = GetFileName(GetBufName (hbuf))
+	temp_str = get_file_name(GetBufName (hbuf))
 	InsBufLine(hbuf, ln + 5,  "  文件名称: @temp_str@")
 	InsBufLine(hbuf, ln + 6,  "  版本编号: 初稿")
 	InsBufLine(hbuf, ln + 7,  "  作     者: @name_str@")
-	SysTime = GetSysTime(1)
+	SysTime = get_system_time()
 	curr_Time = SysTime.Date
 	InsBufLine(hbuf, ln + 8,  "  生成日期: @curr_Time@")
 	InsBufLine(hbuf, ln + 9,  "  最近修改:")
@@ -1996,107 +1997,6 @@ macro InsertFileList(hbuf,hnewbuf,ln)
 		InsBufLine(hbuf,ln,"              @local_line@")
 		ln = ln + 1
 		isym = isym + 1
-	}
-	return ln
-}
-
-macro CommentContent1 (hbuf,ln,curr_PreStr,content_str,isEnd)
-{
-	//将剪贴板中的多段文本合并
-	curr_Clip = MergeString()
-	//去掉多余的空格
-	curr_Tmp = TrimString(content_str)
-	//如果输入窗口中的内容是剪贴板中的内容说明是剪贴过来的
-	ret = strstr(curr_Clip,curr_Tmp)
-	if(ret == 0)
-	{
-		content_str = curr_Clip
-	}
-	curr_LeftBlank = curr_PreStr
-	iLen = strlen(curr_PreStr)
-	k = 0
-	while(k < iLen)
-	{
-		curr_LeftBlank[k] = " ";
-		k = k + 1;
-	}
-	iLen = strlen (content_str)
-	curr_Tmp = cat(curr_PreStr,"#");
-	if( iLen == 0)
-	{
-		InsBufLine(hbuf, ln, "@curr_Tmp@")
-	}
-	else
-	{
-		i = 0
-		while  (iLen - i > 75 - k )
-		{
-			j = 0
-			while(j < 75 - k)
-			{
-				iNum = content_str[i + j]
-				//如果是中文必须成对处理
-				if( AsciiFromChar (iNum)  > 160 )
-				{
-					j = j + 2
-				}
-				else
-				{
-					j = j + 1
-				}
-				if( (j > 70 - k) && (content_str[i + j] == " ") )
-				{
-					break
-				}
-			}
-			if( (content_str[i + j] != " " ) )
-			{
-				n = 0;
-				iNum = content_str[i + j + n]
-				while( (iNum != " " ) && (AsciiFromChar (iNum)  < 160))
-				{
-					n = n + 1
-					if((n >= 3) ||(i + j + n >= iLen))
-						 break;
-					iNum = content_str[i + j + n]
-				}
-				if(n < 3)
-				{
-					j = j + n
-					temp1 = strmid(content_str,i,i+j)
-					temp1 = cat(curr_PreStr,temp1)
-				}
-				else
-				{
-					temp1 = strmid(content_str,i,i+j)
-					temp1 = cat(curr_PreStr,temp1)
-					if(temp1[strlen(temp1)-1] != "-")
-					{
-						temp1 = cat(temp1,"-")
-					}
-				}
-			}
-			else
-			{
-				temp1 = strmid(content_str,i,i+j)
-				temp1 = cat(curr_PreStr,temp1)
-			}
-			InsBufLine(hbuf, ln, "@temp1@")
-			ln = ln + 1
-			curr_PreStr = curr_LeftBlank
-			i = i + j
-			while(content_str[i] == " ")
-			{
-				i = i + 1
-			}
-		}
-		temp1 = strmid(content_str,i,iLen)
-		temp1 = cat(curr_PreStr,temp1)
-		if(isEnd)
-		{
-			temp1 = cat(temp1,"*/")
-		}
-		InsBufLine(hbuf, ln, "@temp1@")
 	}
 	return ln
 }
@@ -2511,7 +2411,7 @@ macro FuncHeadCommentCN(hbuf, ln, curr_Func, author_name,newFunc)
 	del_line_num = -2 //因为注释掉上面两行所以下面的行相应的上移两行
 	InsbufLIne(hbuf, ln+7+del_line_num, " ");
 	InsBufLine(hbuf, ln+8+del_line_num, " 修改历史:")
-	SysTime = GetSysTime(1);
+	SysTime = get_system_time();
 	curr_Time = SysTime.Date
 
 	InsBufLine(hbuf, ln+9+del_line_num, "  1.日     期: @curr_Time@")
@@ -2695,7 +2595,7 @@ macro FuncHeadCommentEN(hbuf, ln, curr_Func, author_name, newFunc)
 	del_line_num = -2//因为注释掉上面两行所以下面的行相应的上移两行
 	InsbufLIne(hbuf, ln+7+del_line_num, " ");
 
-	SysTime = GetSysTime(1);
+	SysTime = get_system_time();
 	temp1=SysTime.Year
 	temp2=SysTime.month
 	temp3=SysTime.day
@@ -2867,7 +2767,7 @@ macro UpdateFunctionList()
 
 macro  InsertHistoryContentCN(hbuf,ln,iHostoryCount)
 {
-	SysTime = GetSysTime(1);
+	SysTime = get_system_time();
 	curr_Time = SysTime.Date
 	author_name = getreg(MYNAME)
 
@@ -2889,7 +2789,7 @@ macro  InsertHistoryContentCN(hbuf,ln,iHostoryCount)
 
 macro  InsertHistoryContentEN(hbuf,ln,iHostoryCount)
 {
-	SysTime = GetSysTime(1);
+	SysTime = get_system_time();
 	curr_Time = SysTime.Date
 	temp1=SysTime.Year
 	temp2=SysTime.month
@@ -2908,12 +2808,12 @@ macro CreateFunctionDef(hbuf, name_str, language)
 	ln = 0
 
 	//获得当前没有后缀的文件名
-	curr_FileName = GetFileNameNoExt(GetBufName (hbuf))
+	curr_FileName = get_filename_no_extension(GetBufName (hbuf))
 	if(strlen(curr_FileName) == 0)
 	{
 		temp_str = ask("请输入头文件名")
-		curr_FileName = GetFileNameNoExt(temp_str)
-		curr_Ext = GetFileNameExt(curr_FileName)
+		curr_FileName = get_filename_no_extension(temp_str)
+		curr_Ext = get_filename_extension(curr_FileName)
 		curr_PreH = toupper (curr_FileName)
 		curr_PreH = cat("__",curr_PreH)
 		curr_Ext = toupper(curr_Ext)
@@ -2973,9 +2873,9 @@ macro CreateFunctionDef(hbuf, name_str, language)
 		}
 		isym = isym + 1
 	}
-	InsertCPP(hOutbuf,0)
+	insert_cplusplus(hOutbuf,0)
 	HeadIfdefStr(curr_PreH)
-	content_str = GetFileName(GetBufName (hbuf))
+	content_str = get_file_name(GetBufName (hbuf))
 	if(language == 0)
 	{
 		content_str = cat(content_str," 的头文件")
@@ -3160,8 +3060,8 @@ macro CreateNewHeaderFile()
 	ln = 0
 	//获得当前没有后缀的文件名
 	temp_str = ask("Please input header file name")
-	curr_FileName = GetFileNameNoExt(temp_str)
-	curr_Ext = GetFileNameExt(temp_str)
+	curr_FileName = get_filename_no_extension(temp_str)
+	curr_Ext = get_filename_extension(temp_str)
 	curr_PreH = toupper (curr_FileName)
 	curr_PreH = cat("__",curr_PreH)
 	curr_Ext = toupper(curr_Ext)
@@ -3171,9 +3071,9 @@ macro CreateNewHeaderFile()
 		stop
 
 	SetCurrentBuf(hOutbuf)
-	InsertCPP(hOutbuf,0)
+	insert_cplusplus(hOutbuf,0)
 	HeadIfdefStr(curr_PreH)
-	content_str = GetFileName(GetBufName (hbuf))
+	content_str = get_file_name(GetBufName (hbuf))
 	if(language == 0)
 	{
 		content_str = cat(content_str," 的头文件")
@@ -4554,7 +4454,64 @@ macro CmtCvtLine(lnCurrent, isCommentEnd)
 	return fIsEnd
 }
 
-macro GetFileNameExt(temp_str)
+/*****************************************************************************
+ Prototype    : parse_file_path_name_extension
+ Description  : 更新长按有效状态
+ Input        : str  
+ Output       : None
+ Return Value : 字符串信息记录
+	.full 绝对路径
+	.path 文件所在目录
+	.name = 文件名
+	.suffix = 后缀名
+  History        :
+  1.Date         : 2018/2/13
+    Author       : Leon
+    Modification : Created function
+*****************************************************************************/
+function parse_file_path_name_extension(str)
+{
+	data = nil
+	//data.full = ""
+	//data.path = ""
+	//data.name = ""
+	//data.suffix = ""
+
+	len = strlen(str)
+	start_pos = 0
+	end_pos = len
+	dot_pos = len
+	dir_pos = len
+	dot_key = "."
+	dir_key = "\\"
+	if(len > 0)
+	{
+		data.full = str
+		while(True)
+		{
+			len = len - 1
+			character = strmid(str, len, len+1)
+			if(character == dot_key)
+			{
+				dot_pos = len
+				data.suffix = strmid(str, dot_pos, end_pos)
+			}
+			else if(character == dir_key)
+			{
+				dir_pos = len
+				data.path = strmid(str, start_pos, dir_pos)
+				data.name = strmid(str, dir_pos+strlen(dir_key), dot_pos)
+				break
+			}
+			if(len <= 0)
+				break
+		}
+	}
+	Msg("data=@data@")
+	return data
+}
+
+macro get_filename_extension(temp_str)
 {
 	i = 1
 	j = 0
@@ -4575,7 +4532,7 @@ macro GetFileNameExt(temp_str)
 	return ""
 }
 
-macro GetFileNameNoExt(temp_str)
+macro get_filename_no_extension(temp_str)
 {
 	i = 1
 	name_str = temp_str
@@ -4600,7 +4557,7 @@ macro GetFileNameNoExt(temp_str)
 	return name_str
 }
 
-macro GetFileName(temp_str)
+macro get_file_name(temp_str)
 {
 	i = 1
 	name_str = temp_str
@@ -4633,7 +4590,7 @@ macro InsIfndef()
 		IfndefStr(temp_str);
 }
 
-macro InsertCPP(hbuf,ln)
+macro insert_cplusplus(hbuf,ln)
 {
 	temp = get_single_line_comments_str()
 	InsBufLine(hbuf, ln, "")
@@ -4659,7 +4616,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 {
 	if (commend_str == "ap")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4679,7 +4636,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 	}
 	else if (commend_str == "ab")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4698,7 +4655,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 	}
 	else if (commend_str == "ae")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4709,7 +4666,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 	}
 	else if (commend_str == "db")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4729,7 +4686,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 	}
 	else if (commend_str == "de")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4740,7 +4697,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 	}
 	else if (commend_str == "mb")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4759,7 +4716,7 @@ macro ReviseCommentProc(hbuf,ln,commend_str,author_name,local_line1)
 	}
 	else if (commend_str == "me")
 	{
-		SysTime = GetSysTime(1)
+		SysTime = get_system_time()
 		temp_str=SysTime.Year
 		temp1=SysTime.month
 		temp3=SysTime.day
@@ -4787,7 +4744,7 @@ macro InsertReviseAdd()
 		author_name = Ask("Enter your name:")
 		setreg(MYNAME, author_name)
 	}
-	SysTime = GetSysTime(1)
+	SysTime = get_system_time()
 	temp_str=SysTime.Year
 	temp1=SysTime.month
 	temp3=SysTime.day
@@ -4839,7 +4796,7 @@ macro InsertReviseDel()
 		author_name = Ask("Enter your name:")
 		setreg(MYNAME, author_name)
 	}
-	SysTime = GetSysTime(1)
+	SysTime = get_system_time()
 	temp_str=SysTime.Year
 	temp1=SysTime.month
 	temp3=SysTime.day
@@ -4891,7 +4848,7 @@ macro InsertReviseMod()
 		author_name = Ask("Enter your name:")
 		setreg(MYNAME, author_name)
 	}
-	SysTime = GetSysTime(1)
+	SysTime = get_system_time()
 	temp_str=SysTime.Year
 	temp1=SysTime.month
 	temp3=SysTime.day
@@ -5042,7 +4999,7 @@ macro HeadIfdefStr(temp_str)
 	InsBufLine(hbuf, iTotalLn, "")
 }
 
-macro GetSysTime(a)
+macro get_system_time()
 {
 	//从sidate取得时间
 	RunCmd ("sidate")
@@ -5113,7 +5070,7 @@ macro FunctionHeaderCreate()
 		author_name = Ask("Enter your name:")
 		setreg(MYNAME, author_name)
 	}
-	nVer = GetVersion()
+	nVer = get_version()
 	lnMax = GetBufLineCount(hbuf)
 	if(ln != lnMax)
 	{
@@ -5148,13 +5105,19 @@ macro FunctionHeaderCreate()
 	}
 }
 
-macro GetVersion()
+/*
+获取版本信息
+*/
+macro get_version()
 {
-	Record = GetProgramInfo ()
+	Record = get_program_info ()
 	return Record.versionMajor
 }
 
-macro GetProgramInfo ()
+/*
+获取程序版本信息
+*/
+macro get_program_info()
 {
 	Record = ""
 	Record.versionMajor = 2
@@ -5162,36 +5125,7 @@ macro GetProgramInfo ()
 	return Record
 }
 
-macro InsertFileHeaderInfo()
-{
-	hwnd = GetCurrentWnd()
-	if (hwnd == 0)
-		stop
-	ln = 0
-	hbuf = GetWndBuf(hwnd)
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
-		SetBufIns (hbuf, 0, 0)
-	if(language == 0)
-	{
-		InsertFileHeaderCN( hbuf,ln, author_name,"" )
-	}
-	else
-	{
-		InsertFileHeaderEN( hbuf,ln, author_name,"" )
-	}
-}
-
-macro FileCreate()
+macro insert_file_header_info()
 {
 	hwnd = GetCurrentWnd()
 	if (hwnd == 0)
@@ -5260,7 +5194,7 @@ macro switch_cpp_hpp()
 	
 	while(index < num)
 	{
-		str = ParseFilenameWithoutExt(file_absolute_path)
+		str = get_file_without_extension(file_absolute_path)
 		dest_extension = GetBufLine(handle, index)
 		dest_file_path = cat(str, dest_extension)
 		open_handle = OpenBuf(dest_file_path)
@@ -5271,6 +5205,33 @@ macro switch_cpp_hpp()
 		}
 		index++
 	}
+}
+
+/*
+在字符串中查找最后一个与str中的某个字符匹配的字符key，返回它的位置。
+搜索从字符串末尾开始。如果没找到就返回nil
+*/
+function find_last_of(str, key)
+{
+	len = strlen(str)
+	pos = nil
+	if(len > 0)
+	{
+		while(True)
+		{
+			len = len - 1
+			if(strmid(str, len, len+1) == key)
+			{
+				pos = len
+				break
+			}
+			
+			if(len <= 0)
+				break
+		}
+	}
+	
+	return pos
 }
 
 /*
@@ -5302,73 +5263,80 @@ macro get_filename_extension(long_filename)
 }
 
 /*
-获取带文件后缀名类型的文件名
-*/
-macro ParseFilenameWithExt(longFilename)
-{
-	shortFilename = longFilename
-	len = strlen(longFilename)-1
-	if(len > 0)
-	{
-		while(True)
-		{
-			if(strmid(longFilename, len, len+1) == "\\")
-				break
-
-			len = len - 1
-			if(len <= 0)
-				break
-		}
-	}
-	shortFilename = strmid(longFilename, len+1, strlen(longFilename))
-
-	return shortFilename
-}
-
-/*
 获取不带文件后缀名类型的文件名
 */
-macro ParseFilenameWithoutExt(longFilename)
+macro get_file_without_extension(file)
 {
-	shortFilename = longFilename
-	len = strlen(longFilename)
-	dotPos = len
+	str = file
+	len = strlen(file)
+	dot_pos = len
 	if(len > 0)
 	{
 		while(True)
 		{
 			len = len - 1
-			if(strmid(longFilename, len, len+1) == ".")
+			if(strmid(str, len, len+1) == ".")
 			{
-				dotPos = len
+				dot_pos = len
 				break
 			}
 			if(len <= 0)
 				break
 		}
 	}
-	shortFilename = strmid(longFilename, 0, dotPos)
+	str = strmid(longFilename, 0, dot_pos)
 
-	return shortFilename
+	return str
+}
+
+/*
+获取不带文件后缀名类型的文件名
+*/
+macro get_file_without_extension(file)
+{
+	str = file
+	len = strlen(file)
+	dot_pos = len
+	if(len > 0)
+	{
+		while(True)
+		{
+			len = len - 1
+			if(strmid(str, len, len+1) == ".")
+			{
+				dot_pos = len
+				break
+			}
+			if(len <= 0)
+				break
+		}
+	}
+	str = strmid(longFilename, 0, dot_pos)
+
+	return str
 }
 
 /*
 添加文件后缀名类型
 */
-macro AddFilenameExt(filename, ext)
+macro add_file_extension(file, extension)
 {
-	return cat(filename, ext)
+	return cat(file, extension)
 }
 
 /*
 检测文件后缀名类型
 */
-macro isFileType(shortFilename, ext)
+macro is_file_type(file, extension)
 {
-	extLen = strlen(ext)
 	lastExtFilename = strmid(shortFilename, strlen(shortFilename)-extLen, strlen(shortFilename))
-	if(toupper(lastExtFilename) == toupper(ext))
+	end_pos = strlen(file)
+	len = strlen(extension)
+	start_pos = end_pos - len
+	str = strmid(file, start_pos, end_pos)
+	if(toupper(str) == toupper(extension))
 		return True
 
 	return False
 }
+
