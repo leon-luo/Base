@@ -8,7 +8,7 @@
   Author        : Leon
   Created       : 2018/2/13
   Last Modified :
-  Description   : 按键单元
+  Description   : 宏功能定义
   Function List :
   History       :
   1.Date        : 2018年2月10日
@@ -19,7 +19,7 @@
 /*
 配置默认作者名字
 */
-macro author()
+macro cfg_author()
 {
 	author_name = getreg(MYNAME)
 	msg("Current author's name is \"@author_name@\".Do you want to change the author's name?")
@@ -33,7 +33,7 @@ macro author()
 /*
 配置选择语言类型
 */
-macro language()
+macro cfg_language()
 {
 	value = getreg(LANGUAGE)
 
