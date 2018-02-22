@@ -26,6 +26,12 @@ macro cfg_author()
 	author_name = Ask("Current author's name is \"@author_name@\". Enter your new name:")
 	if(strlen( author_name ) != 0)
 	{
+		if (author_name == "#")
+		{
+			setreg(MYNAME, "")
+			msg("Clear the environment variable \"MYNAME\"!")
+			return
+		}
 		setreg(MYNAME, author_name)
 	}
 }
@@ -53,6 +59,12 @@ macro cfg_language()
 		value = 0
 		return
 	}
+	else if (curr_language == "#")
+	{
+		setreg ("LANGUAGE", "")
+		msg("Clear the environment variable \"LANGUAGE\"!")
+		return
+	}
 	else
 	{
 		value = set_value
@@ -76,6 +88,41 @@ macro cfg_language()
 }
 
 /*
+配置系统默认变量
+*/
+macro configure_system()
+{
+	cfg_language()
+	cfg_author()
+}
+
+macro get_curr_window_buffer_handle()
+{
+	//Returns the handle of the active, front-most source file window, or returns hNil if no windows are open.
+	handle = GetCurrentWnd()
+	if (hNil == handle)
+		stop
+	//Returns the handle of the file buffer displayed in the window hwnd.
+	handle = GetWndBuf(handle)
+	return handle
+}
+
+/*
+获取当前光标所在的行号
+*/
+macro get_curr_slect_line_num()
+{
+	//Returns the handle of the active, front-most source file window, or returns hNil if no windows are open.
+	handle = GetCurrentWnd()
+	if (hNil == handle)
+		stop
+	//Returns the handle of the file buffer displayed in the window hwnd.
+	sel = GetWndSel(handle)
+	line_num = sel.lnFirst
+	return line_num
+}
+
+/*
 检测当前配置语言是否为英文
 */
 macro test_language_is_english()
@@ -87,6 +134,203 @@ macro test_language_is_english()
 		ret = True
 	}
 	return ret
+}
+
+/*
+获取当前的用户名称
+*/
+macro get_curr_autor_name()
+{
+	ret = getreg(MYNAME)
+	if(strlen( ret ) == 0)
+	{
+		//如果未设置作者名称，则提示输入字符并配置作者名称
+		ret = Ask("Enter your name:")
+		setreg(MYNAME, ret)
+	}
+	return ret
+}
+
+/*
+获取系统当前的时间
+*/
+macro get_system_time()
+{
+	data=""
+	data=GetSysTime(1)
+	msg("GetSysTime(1)=@data@")
+	
+	if(strlen(data.date) == 0)
+	{
+		setreg(Year,"2018")
+		setreg(Month,"01")
+		setreg(Day,"20")
+		data.Year="2018"
+		data.month="01"
+		data.day="20"
+		data.Date="2018年01月20日"
+		Msg("无法获取系统时间！默认设置时间为 SysTime=@SysTime@")
+	}
+	else
+	{
+	    setreg(Year, data.Year)
+		setreg(Month, data.Month)
+		setreg(Day, data.Day)
+		setreg(Date, data.date)
+		data.Month=getreg(Month)
+		data.Day=getreg(Day)
+		data.Date=getreg(Date)
+	}
+	
+	is_english = test_language_is_english()
+	if(False == is_english)
+	{
+		year_unit = "年"
+		month_unit = "月"
+		day_unit = "日"
+	}
+	else
+	{
+		separate = "/"
+		year_unit = separate
+		month_unit = separate
+		day_unit = ""
+	}
+	data.Date=cat(data.Year, year_unit)
+	data.Date=cat(data.Date, data.Month)
+	data.Date=cat(data.Date, month_unit)
+	data.Date=cat(data.Date, data.Day)
+	data.Date=cat(data.Date, day_unit)
+
+	return data
+}
+
+/*
+获取系统当前的时间日期
+*/
+macro get_system_time_date()
+{
+	sys_time = get_system_time();
+	return sys_time.Date
+}
+
+macro get_copyright_str()
+{
+	valid_date_str = "2017-2028"
+	is_english = test_language_is_english()
+	if(True == is_english)
+	{
+		company_str = "HUIZHOU BLUEWAY ELECTRONICS Co., Ltd."
+		temp_str = "  Copyright (C), @valid_date_str@, @company_str@"
+	}
+	else
+	{
+		company_str = "惠州市蓝微电子有限公司"
+		temp_str = "  版权所有 (C), @valid_date_str@, @company_str@"
+	}
+	
+	return temp_str
+}
+
+/*
+获取分割行的格式字符串
+*/
+macro get_separator_line()
+{
+	DividingLine = "*****************************************************************************"
+	//DividingLine = "-----------------------------------------------------------------------------"
+	//DividingLine = "=============================================================================="
+	return DividingLine;
+}
+
+/*
+获取单行注释分割线
+*/
+function get_single_line_comments_str()
+{
+	DividingLine = get_separator_line()
+	temp = "/*@DividingLine@*/"
+	return temp;
+}
+
+/*
+获取多行注释起始
+*/
+function get_multiline_comments_begin()
+{
+	DividingLine = get_separator_line()
+	temp = "/*@DividingLine@"
+	return temp;
+}
+
+/*
+获取多行注释结尾
+*/
+function get_multiline_comments_end()
+{
+	DividingLine = get_separator_line()
+	temp = " @DividingLine@*/"
+	return temp;
+}
+
+/*
+插入分割线
+*/
+function insert_separator_single_comment_line(hbuf, num)
+{
+	temp = get_single_line_comments_str()
+	InsBufLine(hbuf, num++, "@temp@")
+	return num;
+}
+
+/*
+在指定行插入字符串
+*/
+macro insert_line_string(line_num, line_str)
+{
+	handle = get_curr_window_buffer_handle()
+	if (hNil == handle)
+		stop
+	InsBufLine(handle, line_num, line_str)
+}
+
+/*
+在指定行上插入多行注释开始行
+*/
+macro insert_multiline_comments_begin(line_num)
+{
+	line_str = get_multiline_comments_begin()
+	insert_line_string(line_num, line_str)
+}
+
+/*
+在指定行上插入多行注释结束行
+*/
+macro insert_multiline_comments_end(line_num)
+{
+	line_str = get_multiline_comments_end()
+	insert_line_string(line_num, line_str)
+}
+
+/*
+在指定行上插入分割行
+*/
+macro insert_separator_line(line_num)
+{
+	line_str = get_separator_line()
+	insert_line_string(line_num, line_str)
+}
+
+/*
+在当前行上插入字符串行
+*/
+macro insert_curr_slect_line_string(line_str)
+{
+	num = get_curr_slect_line_num()
+	handle = get_curr_window_buffer_handle()
+	if (hNil == handle)
+		stop
+	InsBufLine(handle, num, line_str)
 }
 
 /*
@@ -112,13 +356,7 @@ macro auto_expand()
 	nVer = 0
 	nVer = get_version()
 
-	/*取得用户名*/
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
+	author_name = get_curr_autor_name()
 	// get line the selection (insertion point) is on
 	line_str = GetBufLine(hbuf, sel.lnFirst);
 
@@ -156,26 +394,24 @@ macro auto_expand()
 	sel.ichFirst = wordinfo.ich
 	sel.ichLim = wordinfo.ich
 
-	/*自动完成简化命令的匹配显示*/
+	//自动完成简化命令的匹配显示
 	wordinfo.word = restore_command(hbuf,wordinfo.word)
 
 	sel = GetWndSel(hwnd)
 
-	if (wordinfo.word == "pn") /*问题单号的处理*/
+	if (wordinfo.word == "pn") //问题单号的处理
 	{
 		DelBufLine(hbuf, ln)
 		add_promble_number()
 		return
 	}
-	/*配置命令执行*/
-	else if (wordinfo.word == "config" || wordinfo.word == "co")
+	else if (wordinfo.word == "config" || wordinfo.word == "co")//配置命令执行
 	{
 		DelBufLine(hbuf, ln)
 		configure_system()
 		return
 	}
-	/*修改历史记录更新*/
-	else if (wordinfo.word == "hi")
+	else if (wordinfo.word == "hi")//修改历史记录更新
 	{
 		DelBufLine(hbuf, ln)
 		insert_histort(hbuf, ln)
@@ -208,15 +444,357 @@ macro auto_expand()
 		SetBufIns(hwnd,ln+1,sel.ichFirst)
 		return
 	}
+	
+	expand_proc(wordinfo, retract_line, alignment_line, nVer, ln, sel)
+}
 
+macro expand_proc(wordinfo, retract_line, alignment_line, nVer, ln, sel)
+{
+	commend_str = wordinfo.word
+	hwnd = GetCurrentWnd()
+	if (hwnd == 0)
+		stop
+	hbuf = GetWndBuf(hwnd)
+
+	author_name = get_curr_autor_name()
 	if(True == test_language_is_english())
 	{
-		expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,ln,sel)
+		use_new_line_msg = "The right margine is small, Please use a new line.")
+		input_comment_msg = "Please input comment."
+		input_loop_variable_msg = "Please input loop variable."
+		input_case_num_msg = "Please input the number of case."
+		input_struct_name_msg = "Please input struct name."
+		input_enum_name_msg = "Please input enum name."
+		input_function_name_msg = "Please input function name."
+		input_description_msg = "Description"
 	}
 	else
 	{
-		expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,ln,sel)
+		use_new_line_msg = "右边空间太小,请用新的行.")
+		input_comment_msg = "请输入注释的内容"
+		input_loop_variable_msg = "请输入循环变量"
+		input_case_num_msg = "请输入case的个数"
+		input_struct_name_msg = "请输入结构名称"
+		input_enum_name_msg = "请输入枚举名"
+		input_function_name_msg = "请输入函数名称"
+		input_description_msg = "Description"
 	}
+	/*英文注释*/
+	if (commend_str == "/*")
+	{
+		if(wordinfo.ichLim > 70)
+		{
+			Msg(use_new_line_msg)
+			stop
+		}
+		curr_line = GetBufLine(hbuf, sel.lnFirst);
+		temp_left = strmid(curr_line,0,wordinfo.ichLim)
+		lineLen = strlen(curr_line)
+		kk = 0
+		while(wordinfo.ichLim + kk < lineLen)
+		{
+			if((curr_line[wordinfo.ichLim + kk] != " ")||(curr_line[wordinfo.ichLim + kk] != "\t")
+			{
+				msg("you must insert /* at the end of a line");
+				return
+			}
+			kk = kk + 1
+		}
+		content_str = Ask(input_comment_msg)
+		DelBufLine(hbuf, ln)
+		temp_left = cat( temp_left, " ")
+		comment_content(hbuf,ln,temp_left,content_str,1)
+		return
+	}
+	else if(commend_str == "{")
+	{
+		insert_line_string( ln + 1, "@retract_line@")
+		insert_line_string( ln + 2, "@alignment_line@" # "}")
+		SetBufIns (hbuf, ln + 1, strlen(retract_line))
+		return
+	}
+	else if (commend_str == "while" )
+	{
+		SetBufSelText(hbuf, " ( # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+	}
+	else if( commend_str == "else" )
+	{
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@");
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		SetBufIns (hbuf, ln + 2, strlen(retract_line))
+		return
+	}
+	else if (commend_str == "#ifd" || commend_str == "#ifdef") //#ifdef
+	{
+		DelBufLine(hbuf, ln)
+		insert_ifdef()
+		return
+	}
+	else if (commend_str == "#ifn" || commend_str == "#ifndef") //#ifndef
+	{
+		DelBufLine(hbuf, ln)
+		insert_ifndef()
+		return
+	}
+	else if (commend_str == "#if")
+	{
+		DelBufLine(hbuf, ln)
+		insert_pre_def_if()
+		return
+	}
+	else if (commend_str == "cpp")
+	{
+		DelBufLine(hbuf, ln)
+		insert_cplusplus(hbuf,ln)
+		return
+	}
+	else if (commend_str == "if")
+	{
+		SetBufSelText(hbuf, " ( # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+	}
+	else if (commend_str == "ef")
+	{
+		PutBufLine(hbuf, ln, alignment_line # "else if ( # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+	}
+	else if (commend_str == "ife")
+	{
+		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 4, "@alignment_line@" # "else")
+		insert_line_string( ln + 5, "@alignment_line@" # "{")
+		insert_line_string( ln + 6, "@retract_line@" # ";")
+		insert_line_string( ln + 7, "@alignment_line@" # "}")
+	}
+	else if (commend_str == "ifs")
+	{
+		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 4, "@alignment_line@" # "else if ( # )")
+		insert_line_string( ln + 5, "@alignment_line@" # "{")
+		insert_line_string( ln + 6, "@retract_line@" # ";")
+		insert_line_string( ln + 7, "@alignment_line@" # "}")
+		insert_line_string( ln + 8, "@alignment_line@" # "else")
+		insert_line_string( ln + 9, "@alignment_line@" # "{")
+		insert_line_string( ln + 10, "@retract_line@" # ";")
+		insert_line_string( ln + 11, "@alignment_line@" # "}")
+	}
+	else if (commend_str == "for")
+	{
+		SetBufSelText(hbuf, " ( # ; # ; # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		SetWndSel(hwnd, sel)
+		search_forward()
+		curr_value = ask(input_loop_variable_msg)
+		newsel = sel
+		newsel.ichLim = GetBufLineLength (hbuf, ln)
+		SetWndSel(hwnd, newsel)
+		SetBufSelText(hbuf, " ( @curr_value@ = # ; @curr_value@ # ; @curr_value@++ )")
+	}
+	else if (commend_str == "fo")
+	{
+		SetBufSelText(hbuf, "r ( ulI = 0; ulI < # ; ulI++ )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		symname =GetCurSymbol ()
+		symbol = GetSymbolLocation(symname)
+		if(strlen(symbol) > 0)
+		{
+			nIdx = symbol.lnName + 1;
+			while( 1 )
+			{
+				curr_line = GetBufLine(hbuf, nIdx);
+				nRet = string_cmp(curr_line,"{")
+				if( nRet != 0xffffffff )
+				{
+					break;
+				}
+				nIdx = nIdx + 1
+				if(nIdx > symbol.lnLim)
+				{
+					break
+				}
+			 }
+			 insert_line_string( nIdx + 1, "    UINT32_T ulI = 0;");
+		 }
+	}
+	else if (commend_str == "switch" )
+	{
+		nSwitch = ask(input_case_num_msg)
+		SetBufSelText(hbuf, " ( # )")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_multi_case_proc(hbuf,alignment_line,nSwitch)
+	}
+	else if (commend_str == "do")
+	{
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "} while ( # );")
+	}
+	else if (commend_str == "case" )
+	{
+		SetBufSelText(hbuf, " # :")
+		insert_line_string( ln + 1, "@retract_line@" # "#")
+		insert_line_string( ln + 2, "@retract_line@" # "break;")
+	}
+	else if (commend_str == "struct" || commend_str == "st")
+	{
+		DelBufLine(hbuf, ln)
+		struct_name = toupper(Ask(input_struct_name_msg))
+		insert_line_string( ln, "@alignment_line@typedef struct @struct_name@");
+		insert_line_string( ln + 1, "@alignment_line@{");
+		insert_line_string( ln + 2, "@retract_line@             ");
+		struct_name = cat(struct_name,"_STRU")
+		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;");
+		SetBufIns (hbuf, ln + 2, strlen(retract_line))
+		return
+	}
+	else if (commend_str == "enum" || commend_str == "en")
+	{
+		DelBufLine(hbuf, ln)
+		struct_name = toupper(Ask(input_enum_name_msg))
+		insert_line_string( ln, "@alignment_line@typedef enum @struct_name@");
+		insert_line_string( ln + 1, "@alignment_line@{");
+		insert_line_string( ln + 2, "@retract_line@             ");
+		struct_name = cat(struct_name,"_ENUM")
+		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;");
+		SetBufIns (hbuf, ln + 2, strlen(retract_line))
+		return
+	}
+	else if (commend_str == "file" || commend_str == "fi")
+	{
+		DelBufLine(hbuf, ln)
+		insert_file_header_english( hbuf, 0, author_name, "" )
+		return
+	}
+	else if (commend_str == "func" || commend_str == "fu")
+	{
+		DelBufLine(hbuf,ln)
+		lnMax = GetBufLineCount(hbuf)
+		if(ln != lnMax)
+		{
+			next_line = GetBufLine(hbuf,ln)
+			if( (string_cmp(next_line,"(") != 0xffffffff) || (nVer != 2))
+			{
+				symbol = GetCurSymbol()
+				if(strlen(symbol) != 0)
+				{
+					function_head_comment(hbuf, ln, symbol, False)
+					return
+				}
+			}
+		}
+		function_name = Ask(input_function_name_msg)
+		function_head_comment(hbuf, ln, function_name, True)
+	}
+	else if (commend_str == "tab")
+	{
+		DelBufLine(hbuf, ln)
+		replace_buffer_tab()
+		return
+	}
+	else if (commend_str == "ap")
+	{
+		date_str = get_system_time_date()
+
+		DelBufLine(hbuf, ln)
+		question_v = add_promble_number()
+		insert_line_string( ln, "@alignment_line@/* Promblem Number: @question_v@     Author:@author_name@,   Date:@date_str@ ");
+		content_str = Ask(input_description_msg)
+		temp_left = cat(alignment_line,"   Description    : ");
+		if(strlen(temp_left) > 70)
+		{
+			Msg("The right margine is small, Please use a new line")
+			stop
+		}
+		ln = comment_content(hbuf,ln + 1,temp_left,content_str,1)
+		return
+	}
+	else if (commend_str == "hd")
+	{
+		DelBufLine(hbuf, ln)
+		create_function_def(hbuf, author_name)
+		return
+	}
+	else if (commend_str == "hdn")
+	{
+		DelBufLine(hbuf, ln)
+		create_new_header_file()//生成不要文件名的新头文件
+		return
+	}
+	else if (commend_str == "ab")
+	{
+		date_str = get_system_time_date()
+		question_str = get_question_str()
+		DelBufLine(hbuf, ln)
+		insert_line_string( ln, "@alignment_line@/* BEGIN: Added by @author_name@, @date_str@ @question_str@*/")
+		return
+	}
+	else if (commend_str == "ae")
+	{
+		date_str = get_system_time_date()
+
+		DelBufLine(hbuf, ln)
+		insert_line_string( ln, "@alignment_line@/* END:   Added by @author_name@, @date_str@ */");
+		return
+	}
+	else if (commend_str == "db")
+	{
+		date_str = get_system_time_date()
+		question_str = get_question_str()
+		DelBufLine(hbuf, ln)
+		insert_line_string( ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @date_str@ @question_str@*/")
+
+		return
+	}
+	else if (commend_str == "de")
+	{
+		date_str = get_system_time_date()
+
+		DelBufLine(hbuf, ln + 0)
+		insert_line_string( ln, "@alignment_line@/* END: Deleted by @author_name@, @date_str@ */");
+		return
+	}
+	else if (commend_str == "mb")
+	{
+		date_str = get_system_time_date()
+		question_str = get_question_str()
+		DelBufLine(hbuf, ln)
+		insert_line_string( ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @date_str@ @question_str@*/")
+		return
+	}
+	else if (commend_str == "me")
+	{
+		date_str = get_system_time_date()
+
+		DelBufLine(hbuf, ln)
+		insert_line_string( ln, "@alignment_line@/* END:   Modified by @author_name@, @date_str@ */");
+		return
+	}
+	else
+	{
+		search_forward()
+		//expand_brace_large()
+		stop
+	}
+	SetWndSel(hwnd, sel)
+	search_forward()
 }
 
 macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,ln,sel)
@@ -255,23 +833,23 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 	}
 	else if(commend_str == "{")
 	{
-		InsBufLine(hbuf, ln + 1, "@retract_line@")
-		InsBufLine(hbuf, ln + 2, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@retract_line@")
+		insert_line_string( ln + 2, "@alignment_line@" # "}")
 		SetBufIns (hbuf, ln + 1, strlen(retract_line))
 		return
 	}
 	else if (commend_str == "while" )
 	{
 		SetBufSelText(hbuf, " ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 	}
 	else if( commend_str == "else" )
 	{
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@");
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 		SetBufIns (hbuf, ln + 2, strlen(retract_line))
 		return
 	}
@@ -302,49 +880,49 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 	else if (commend_str == "if")
 	{
 		SetBufSelText(hbuf, " ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 	}
 	else if (commend_str == "ef")
 	{
 		PutBufLine(hbuf, ln, alignment_line # "else if ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 	}
 	else if (commend_str == "ife")
 	{
 		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
-		InsBufLine(hbuf, ln + 4, "@alignment_line@" # "else")
-		InsBufLine(hbuf, ln + 5, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 6, "@retract_line@" # ";")
-		InsBufLine(hbuf, ln + 7, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 4, "@alignment_line@" # "else")
+		insert_line_string( ln + 5, "@alignment_line@" # "{")
+		insert_line_string( ln + 6, "@retract_line@" # ";")
+		insert_line_string( ln + 7, "@alignment_line@" # "}")
 	}
 	else if (commend_str == "ifs")
 	{
 		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
-		InsBufLine(hbuf, ln + 4, "@alignment_line@" # "else if ( # )")
-		InsBufLine(hbuf, ln + 5, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 6, "@retract_line@" # ";")
-		InsBufLine(hbuf, ln + 7, "@alignment_line@" # "}")
-		InsBufLine(hbuf, ln + 8, "@alignment_line@" # "else")
-		InsBufLine(hbuf, ln + 9, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 10, "@retract_line@" # ";")
-		InsBufLine(hbuf, ln + 11, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 4, "@alignment_line@" # "else if ( # )")
+		insert_line_string( ln + 5, "@alignment_line@" # "{")
+		insert_line_string( ln + 6, "@retract_line@" # ";")
+		insert_line_string( ln + 7, "@alignment_line@" # "}")
+		insert_line_string( ln + 8, "@alignment_line@" # "else")
+		insert_line_string( ln + 9, "@alignment_line@" # "{")
+		insert_line_string( ln + 10, "@retract_line@" # ";")
+		insert_line_string( ln + 11, "@alignment_line@" # "}")
 	}
 	else if (commend_str == "for")
 	{
 		SetBufSelText(hbuf, " ( # ; # ; # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 		SetWndSel(hwnd, sel)
 		search_forward()
 		curr_value = ask("Please input loop variable")
@@ -356,9 +934,9 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 	else if (commend_str == "fo")
 	{
 		SetBufSelText(hbuf, "r ( ulI = 0; ulI < # ; ulI++ )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 		symname =GetCurSymbol ()
 		symbol = GetSymbolLocation(symname)
 		if(strlen(symbol) > 0)
@@ -378,37 +956,37 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 					break
 				}
 			 }
-			 InsBufLine(hbuf, nIdx + 1, "    UINT32_T ulI = 0;");
+			 insert_line_string( nIdx + 1, "    UINT32_T ulI = 0;");
 		 }
 	}
 	else if (commend_str == "switch" )
 	{
 		nSwitch = ask("Please input the number of case")
 		SetBufSelText(hbuf, " ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
 		insert_multi_case_proc(hbuf,alignment_line,nSwitch)
 	}
 	else if (commend_str == "do")
 	{
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "} while ( # );")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "} while ( # );")
 	}
 	else if (commend_str == "case" )
 	{
 		SetBufSelText(hbuf, " # :")
-		InsBufLine(hbuf, ln + 1, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "break;")
+		insert_line_string( ln + 1, "@retract_line@" # "#")
+		insert_line_string( ln + 2, "@retract_line@" # "break;")
 	}
 	else if (commend_str == "struct" || commend_str == "st")
 	{
 		DelBufLine(hbuf, ln)
 		struct_name = toupper(Ask("Please input struct name"))
-		InsBufLine(hbuf, ln, "@alignment_line@typedef struct @struct_name@");
-		InsBufLine(hbuf, ln + 1, "@alignment_line@{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@             ");
+		insert_line_string( ln, "@alignment_line@typedef struct @struct_name@");
+		insert_line_string( ln + 1, "@alignment_line@{");
+		insert_line_string( ln + 2, "@retract_line@             ");
 		struct_name = cat(struct_name,"_STRU")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@}@struct_name@;");
+		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;");
 		SetBufIns (hbuf, ln + 2, strlen(retract_line))
 		return
 	}
@@ -416,11 +994,11 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 	{
 		DelBufLine(hbuf, ln)
 		struct_name = toupper(Ask("Please input enum name"))
-		InsBufLine(hbuf, ln, "@alignment_line@typedef enum @struct_name@");
-		InsBufLine(hbuf, ln + 1, "@alignment_line@{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@             ");
+		insert_line_string( ln, "@alignment_line@typedef enum @struct_name@");
+		insert_line_string( ln + 1, "@alignment_line@{");
+		insert_line_string( ln + 2, "@retract_line@             ");
 		struct_name = cat(struct_name,"_ENUM")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@}@struct_name@;");
+		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;");
 		SetBufIns (hbuf, ln + 2, strlen(retract_line))
 		return
 	}
@@ -442,13 +1020,13 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 				symbol = GetCurSymbol()
 				if(strlen(symbol) != 0)
 				{
-					function_head_comment_english(hbuf, ln, symbol, author_name,0)
+					function_head_comment(hbuf, ln, symbol, False)
 					return
 				}
 			}
 		}
 		function_name = Ask("Please input function name")
-		function_head_comment_english(hbuf, ln, function_name, author_name, 1)
+		function_head_comment(hbuf, ln, function_name, True)
 	}
 	else if (commend_str == "tab")
 	{
@@ -458,14 +1036,11 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 	}
 	else if (commend_str == "ap")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln)
 		question_v = add_promble_number()
-		InsBufLine(hbuf, ln, "@alignment_line@/* Promblem Number: @question_v@     Author:@author_name@,   Date:@temp_str@/@temp1@/@temp3@ ");
+		insert_line_string( ln, "@alignment_line@/* Promblem Number: @question_v@     Author:@author_name@,   Date:@date_str@ ");
 		content_str = Ask("Description")
 		temp_left = cat(alignment_line,"   Description    : ");
 		if(strlen(temp_left) > 70)
@@ -479,106 +1054,86 @@ macro expand_proc_english(author_name,wordinfo,retract_line,alignment_line,nVer,
 	else if (commend_str == "hd")
 	{
 		DelBufLine(hbuf, ln)
-		create_function_def(hbuf,author_name,1)
+		create_function_def(hbuf, author_name)
 		return
 	}
 	else if (commend_str == "hdn")
 	{
 		DelBufLine(hbuf, ln)
-
-		/*生成不要文件名的新头文件*/
-		create_new_header_file()
+		create_new_header_file()//生成不要文件名的新头文件
 		return
 	}
 	else if (commend_str == "ab")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln)
 		question_v = GetReg ("PNO")
 		if(strlen(question_v)>0)
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Added by @author_name@, @date_str@   PN:@question_v@ */");
 		}
 		else
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Added by @author_name@, @date_str@ */");
 		}
 		return
 	}
 	else if (commend_str == "ae")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END:   Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string( ln, "@alignment_line@/* END:   Added by @author_name@, @date_str@ */");
 		return
 	}
 	else if (commend_str == "db")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln)
 		question_v = GetReg ("PNO")
 			if(strlen(question_v) > 0)
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @date_str@   PN:@question_v@ */");
 		}
 		else
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @date_str@ */");
 		}
 
 		return
 	}
 	else if (commend_str == "de")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln + 0)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string( ln, "@alignment_line@/* END: Deleted by @author_name@, @date_str@ */");
 		return
 	}
 	else if (commend_str == "mb")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln)
 		question_v = GetReg ("PNO")
 		if(strlen(question_v) > 0)
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @date_str@   PN:@question_v@ */");
 		}
 		else
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @date_str@ */");
 		}
 		return
 	}
 	else if (commend_str == "me")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
+		date_str = get_system_time_date()
 
 		DelBufLine(hbuf, ln)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END:   Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string( ln, "@alignment_line@/* END:   Modified by @author_name@, @date_str@ */");
 		return
 	}
 	else
@@ -599,6 +1154,15 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		stop
 	hbuf = GetWndBuf(hwnd)
 
+	no_enough_space_msg = "右边空间太小,请用新的行"
+	"只能在行尾插入"
+	"请输入注释的内容"
+	"请输入循环变量"
+	"请输入case的个数"
+	"请输入结构名:"
+	"请输入枚举名:"
+	"请输入函数名称:"
+
 	//中文注释
 	if (commend_str == "/*")
 	{
@@ -606,7 +1170,8 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		{
 			Msg("右边空间太小,请用新的行")
 			stop
-		}        curr_line = GetBufLine(hbuf, sel.lnFirst);
+		}
+		curr_line = GetBufLine(hbuf, sel.lnFirst);
 		temp_left = strmid(curr_line,0,wordinfo.ichLim)
 		lineLen = strlen(curr_line)
 		kk = 0
@@ -628,23 +1193,23 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 	}
 	else if(commend_str == "{")
 	{
-		InsBufLine(hbuf, ln + 1, "@retract_line@")
-		InsBufLine(hbuf, ln + 2, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@retract_line@")
+		insert_line_string( ln + 2, "@alignment_line@" # "}");
 		SetBufIns (hbuf, ln + 1, strlen(retract_line))
 		return
 	}
 	else if (commend_str == "while" || commend_str == "wh")
 	{
 		SetBufSelText(hbuf, " ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@alignment_line@" # "{");
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "}");
 	}
 	else if( commend_str == "else" || commend_str == "el")
 	{
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@alignment_line@" # "{");
+		insert_line_string( ln + 2, "@retract_line@");
+		insert_line_string( ln + 3, "@alignment_line@" # "}");
 		SetBufIns (hbuf, ln + 2, strlen(retract_line))
 		return
 	}
@@ -675,49 +1240,49 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 	else if (commend_str == "if")
 	{
 		SetBufSelText(hbuf, " ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@alignment_line@" # "{");
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "}");
 	}
 	else if (commend_str == "ef")
 	{
 		PutBufLine(hbuf, ln, alignment_line # "else if ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@alignment_line@" # "{");
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "}");
 	}
 	else if (commend_str == "ife")
 	{
 		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}");
-		InsBufLine(hbuf, ln + 4, "@alignment_line@" # "else");
-		InsBufLine(hbuf, ln + 5, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 6, "@retract_line@" # ";");
-		InsBufLine(hbuf, ln + 7, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@alignment_line@" # "{");
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "}");
+		insert_line_string( ln + 4, "@alignment_line@" # "else");
+		insert_line_string( ln + 5, "@alignment_line@" # "{");
+		insert_line_string( ln + 6, "@retract_line@" # ";");
+		insert_line_string( ln + 7, "@alignment_line@" # "}");
 	}
 	else if (commend_str == "ifs")
 	{
 		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}");
-		InsBufLine(hbuf, ln + 4, "@alignment_line@" # "else if ( # )");
-		InsBufLine(hbuf, ln + 5, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 6, "@retract_line@" # ";");
-		InsBufLine(hbuf, ln + 7, "@alignment_line@" # "}");
-		InsBufLine(hbuf, ln + 8, "@alignment_line@" # "else");
-		InsBufLine(hbuf, ln + 9, "@alignment_line@" # "{");
-		InsBufLine(hbuf, ln + 10, "@retract_line@" # ";");
-		InsBufLine(hbuf, ln + 11, "@alignment_line@" # "}");
+		insert_line_string( ln + 1, "@alignment_line@" # "{");
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "}");
+		insert_line_string( ln + 4, "@alignment_line@" # "else if ( # )");
+		insert_line_string( ln + 5, "@alignment_line@" # "{");
+		insert_line_string( ln + 6, "@retract_line@" # ";");
+		insert_line_string( ln + 7, "@alignment_line@" # "}");
+		insert_line_string( ln + 8, "@alignment_line@" # "else");
+		insert_line_string( ln + 9, "@alignment_line@" # "{");
+		insert_line_string( ln + 10, "@retract_line@" # ";");
+		insert_line_string( ln + 11, "@alignment_line@" # "}");
 	}
 	else if (commend_str == "for")
 	{
 		SetBufSelText(hbuf, " ( # ; # ; # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 		SetWndSel(hwnd, sel)
 		search_forward()
 		curr_value = ask("请输入循环变量")
@@ -729,9 +1294,9 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 	else if (commend_str == "fo")
 	{
 		SetBufSelText(hbuf, "r ( ulI = 0; ulI < # ; ulI++ )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "}")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#")
+		insert_line_string( ln + 3, "@alignment_line@" # "}")
 		symname =GetCurSymbol ()
 		symbol = GetSymbolLocation(symname)
 		if(strlen(symbol) > 0)
@@ -751,37 +1316,37 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 					break
 				}
 			}
-			InsBufLine(hbuf, nIdx + 1, "    UINT32_T ulI = 0;");
+			insert_line_string( nIdx + 1, "    UINT32_T ulI = 0;");
 		}
 	}
 	else if (commend_str == "switch" || commend_str == "sw")
 	{
 		nSwitch = ask("请输入case的个数")
 		SetBufSelText(hbuf, " ( # )")
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
 		insert_multi_case_proc(hbuf,alignment_line,nSwitch)
 	}
 	else if (commend_str == "do")
 	{
-		InsBufLine(hbuf, ln + 1, "@alignment_line@" # "{")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "#");
-		InsBufLine(hbuf, ln + 3, "@alignment_line@" # "} while ( # );")
+		insert_line_string( ln + 1, "@alignment_line@" # "{")
+		insert_line_string( ln + 2, "@retract_line@" # "#");
+		insert_line_string( ln + 3, "@alignment_line@" # "} while ( # );")
 	}
 	else if (commend_str == "case" || commend_str == "ca" )
 	{
 		SetBufSelText(hbuf, " # :")
-		InsBufLine(hbuf, ln + 1, "@retract_line@" # "#")
-		InsBufLine(hbuf, ln + 2, "@retract_line@" # "break;")
+		insert_line_string( ln + 1, "@retract_line@" # "#")
+		insert_line_string( ln + 2, "@retract_line@" # "break;")
 	}
 	else if (commend_str == "struct" || commend_str == "st" )
 	{
 		DelBufLine(hbuf, ln)
 		struct_name = toupper(Ask("请输入结构名:"))
-		InsBufLine(hbuf, ln, "@alignment_line@typedef struct @struct_name@");
-		InsBufLine(hbuf, ln + 1, "@alignment_line@{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@      ");
+		insert_line_string( ln, "@alignment_line@typedef struct @struct_name@");
+		insert_line_string( ln + 1, "@alignment_line@{");
+		insert_line_string( ln + 2, "@retract_line@      ");
 		struct_name = cat(struct_name,"_STRU")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@}@struct_name@;");
+		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;");
 		SetBufIns (hbuf, ln + 2, strlen(retract_line))
 		return
 	}
@@ -790,11 +1355,11 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		DelBufLine(hbuf, ln)
 		//提示输入枚举名并转换为大写
 		struct_name = toupper(Ask("请输入枚举名:"))
-		InsBufLine(hbuf, ln, "@alignment_line@typedef enum @struct_name@");
-		InsBufLine(hbuf, ln + 1, "@alignment_line@{");
-		InsBufLine(hbuf, ln + 2, "@retract_line@       ");
+		insert_line_string( ln, "@alignment_line@typedef enum @struct_name@");
+		insert_line_string( ln + 1, "@alignment_line@{");
+		insert_line_string( ln + 2, "@retract_line@       ");
 		struct_name = cat(struct_name,"_ENUM")
-		InsBufLine(hbuf, ln + 3, "@alignment_line@}@struct_name@;");
+		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;");
 		SetBufIns (hbuf, ln + 2, strlen(retract_line))
 		return
 	}
@@ -809,7 +1374,7 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 	{
 		DelBufLine(hbuf, ln)
 		/*生成C语言的头文件*/
-		create_function_def(hbuf,author_name,0)
+		create_function_def(hbuf, author_name)
 		return
 	}
 	else if (commend_str == "hdn")
@@ -834,14 +1399,16 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 				symbol = GetCurSymbol()
 				if(strlen(symbol) != 0)
 				{
-					function_head_comment_chinese(hbuf, ln, symbol, author_name,0)
+					//function_head_comment_chinese(hbuf, ln, symbol, author_name,0)
+					function_head_comment(hbuf, ln, symbol, False)
 					return
 				}
 			}
 		}
 		function_name = Ask("请输入函数名称:")
 		/*是新函数*/
-		function_head_comment_chinese(hbuf, ln, function_name, author_name, 1)
+		//function_head_comment_chinese(hbuf, ln, function_name, author_name, 1)
+		function_head_comment(hbuf, ln, function_name, True)
 	}
 	else if (commend_str == "tab") /*将tab扩展为空格*/
 	{
@@ -857,7 +1424,7 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 
 		DelBufLine(hbuf, ln)
 		question_v = add_promble_number()
-		InsBufLine(hbuf, ln, "@alignment_line@/* 问 题 单: @question_v@     修改人:@author_name@,   时间:@temp_str@/@temp1@/@temp3@ ");
+		insert_line_string( ln, "@alignment_line@/* 问 题 单: @question_v@     修改人:@author_name@,   时间:@temp_str@/@temp1@/@temp3@ ");
 		content_str = Ask("修改原因")
 		temp_left = cat(alignment_line,"   修改原因: ");
 		if(strlen(temp_left) > 70)
@@ -879,11 +1446,11 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		question_v = GetReg ("PNO")
 		if(strlen(question_v)>0)
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@ */");
 		}
 		else
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
 		}
 		return
 	}
@@ -895,7 +1462,7 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		temp3=SysTime.day
 
 		DelBufLine(hbuf, ln)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END:   Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string( ln, "@alignment_line@/* END:   Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
 		return
 	}
 	else if (commend_str == "db")
@@ -909,11 +1476,11 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		question_v = GetReg ("PNO")
 		if(strlen(question_v) > 0)
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@ */");
 		}
 		else
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
 		}
 
 		return
@@ -926,7 +1493,7 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		temp3=SysTime.day
 
 		DelBufLine(hbuf, ln + 0)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string( ln, "@alignment_line@/* END: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
 		return
 	}
 	else if (commend_str == "mb")
@@ -940,11 +1507,11 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		question_v = GetReg ("PNO")
 		if(strlen(question_v) > 0)
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@ */");
 		}
 		else
 		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+			insert_line_string( ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
 		}
 		return
 	}
@@ -956,7 +1523,7 @@ macro expand_proc_chinese(author_name,wordinfo,retract_line,alignment_line,nVer,
 		temp3=SysTime.day
 
 		DelBufLine(hbuf, ln)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END:   Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string( ln, "@alignment_line@/* END:   Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
 		return
 	}
 	else
@@ -1146,7 +1713,7 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 	symbolname = symbol.Symbol
 	nLineEnd = symbol.lnLim
 	nExitCount = 1;
-	InsBufLine(hbuf, ln, "    DebugTrace(\"\\r\\n |@symbolname@() entry--- \");")
+	insert_line_string( ln, "    DebugTrace(\"\\r\\n |@symbolname@() entry--- \");")
 	ln = ln + 1
 	fIsEnd = 1
 	fIsNeedPrt = 1
@@ -1208,10 +1775,10 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 			if( fIsSatementEnd == 0)
 			{
 				fIsNeedPrt = 1
-				InsBufLine(hbuf,ln+1,"@curr_LeftOld@}")
+				insert_line_string(ln+1,"@curr_LeftOld@}")
 				curr_End = cat(temp_left,"DebugTrace(\"\\r\\n |@symbolname@() exit---: @nExitCount@ \");")
-				InsBufLine(hbuf, ln, curr_End )
-				InsBufLine(hbuf,ln,"@curr_LeftOld@{")
+				insert_line_string( ln, curr_End )
+				insert_line_string(ln,"@curr_LeftOld@{")
 				nExitCount = nExitCount + 1
 				nLineEnd = nLineEnd + 3
 				ln = ln + 3
@@ -1220,7 +1787,7 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 			{
 				fIsNeedPrt = 0
 				curr_End = cat(temp_left,"DebugTrace(\"\\r\\n |@symbolname@() exit---: @nExitCount@ \");")
-				InsBufLine(hbuf, ln, curr_End )
+				insert_line_string( ln, curr_End )
 				nExitCount = nExitCount + 1
 				nLineEnd = nLineEnd + 1
 				ln = ln + 1
@@ -1252,8 +1819,8 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 	//只要前面的return后有一个}了说明函数的结尾没有返回，需要再加一个出口打印
 	if(fIsNeedPrt == 1)
 	{
-		InsBufLine(hbuf, ln,  "    DebugTrace(\"\\r\\n |@symbolname@() exit---: @nExitCount@ \");")
-		InsBufLine(hbuf, ln,  "")
+		insert_line_string( ln,  "    DebugTrace(\"\\r\\n |@symbolname@() exit---: @nExitCount@ \");")
+		insert_line_string( ln,  "")
 	}
 }
 
@@ -1273,8 +1840,7 @@ macro get_first_word(retract_line)
 		}
 		nIdx = nIdx + 1
 	}
-	return ""
-
+	return retract_line //return ""
 }
 
 macro auto_insert_trace_info_in_buffer()
@@ -1327,7 +1893,7 @@ macro auto_insert_trace_info_in_buffer()
 								{
 									ln = isBlandLine
 								}
-								InsBufLine(hbuf,ln,"")
+								insert_line_string(ln,"")
 								childsym.lnLim = childsym.lnLim + 1
 								SetBufIns(hbuf, ln+1 , 0)
 								insert_trace_in_curr_function(hbuf,childsym)
@@ -1383,7 +1949,7 @@ macro auto_insert_trace_info_in_buffer()
 							}
 							SetBufIns(hbuf, ln , 0)
 							insert_trace_in_curr_function(hbuf,symbol)
-							InsBufLine(hbuf,ln,"")
+							insert_line_string(ln,"")
 							break
 						}
 						if(strlen(curr_New) == 0)
@@ -1628,79 +2194,23 @@ macro remove_prj_trace_info()
 }
 
 /*
-获取分割行的格式字符串
-*/
-macro get_separator_line()
-{
-	DividingLine = "*****************************************************************************"
-	//DividingLine = "-----------------------------------------------------------------------------"
-	//DividingLine = "=============================================================================="
-	return DividingLine;
-}
-
-/*
-获取单行注释分割线
-*/
-function get_single_line_comments_str()
-{
-	DividingLine = get_separator_line()
-	temp = "/*@DividingLine@*/"
-	return temp;
-}
-
-/*
-获取多行注释起始
-*/
-function get_multiline_comments_begin()
-{
-	DividingLine = get_separator_line()
-	temp = "/*@DividingLine@"
-	return temp;
-}
-
-/*
-获取多行注释结尾
-*/
-function get_multiline_comments_end()
-{
-	DividingLine = get_separator_line()
-	temp = " @DividingLine@*/"
-	return temp;
-}
-
-/*
-插入分割线
-*/
-function insert_separator_line(hbuf, num)
-{
-	temp = get_single_line_comments_str()
-	InsBufLine(hbuf, num++, "@temp@")
-	return num;
-}
-
-/*
 插入空行
 */
-function insert_blank_line(hbuf, num)
+function insert_blank_line(num)
 {
-	InsBufLine(hbuf, num++, "")
+	insert_line_string(num++, "")
 	return num;
 }
 
 /*
-插入分割信息块说明
+插入注释信息块说明
 */
-macro InsertSection(hbuf, num, str)
+macro insert_comment_string_section(hbuf, num, str)
 {
-	DividingLine = get_separator_line()
-	BeginDividingLine = get_multiline_comments_begin()
-	EndDividingLine = get_multiline_comments_end()
-
-	InsBufLine(hbuf, num++, "@BeginDividingLine@")
-	InsBufLine(hbuf, num++, " * @str@")
-	InsBufLine(hbuf, num++, "@EndDividingLine@")
-
-	num = insert_blank_line(hbuf, num)
+	insert_multiline_comments_begin(num++)
+	insert_line_string(num++, " * @str@")
+	insert_multiline_comments_end(num++)
+	num = insert_blank_line(num)
 	return num;
 }
 
@@ -1800,51 +2310,45 @@ macro insert_file_header_english(hbuf, ln, name_str, content_str)
 		stop
 	}
 	
-	DividingLine = get_separator_line()
-	BeginDividingLine = get_multiline_comments_begin()
-	EndDividingLine = get_multiline_comments_end()
-	
+	copyright_str = get_copyright_str()
 	get_function_list(hbuf,hnewbuf)
-	InsBufLine(hbuf, ln + 0,  "@BeginDividingLine@")
-	InsBufLine(hbuf, ln + 1,  "")
-	InsBufLine(hbuf, ln + 2,  "  Copyright (C), 2017-2028, HUIZHOU BLUEWAY ELECTRONICS Co., Ltd.")
-	InsBufLine(hbuf, ln + 3,  "")
-	InsBufLine(hbuf, ln + 4,  " @DividingLine@")
+	insert_multiline_comments_begin(ln)
+	insert_line_string( ln + 1,  "")
+	insert_line_string( ln + 2,  "@copyright_str@")
+	insert_line_string( ln + 3,  "")
+	insert_separator_line(ln + 4)
 	temp_str = get_file_name(GetBufName (hbuf))
-	InsBufLine(hbuf, ln + 5,  "  File Name     : @temp_str@")
-	InsBufLine(hbuf, ln + 6,  "  Version       : Initial Draft")
-	InsBufLine(hbuf, ln + 7,  "  Author        : @name_str@")
+	insert_line_string( ln + 5,  "  File Name     : @temp_str@")
+	insert_line_string( ln + 6,  "  Version       : Initial Draft")
+	insert_line_string( ln + 7,  "  Author        : @name_str@")
 	SysTime = get_system_time()
-	temp_str=SysTime.Year
-	temp1=SysTime.month
-	temp3=SysTime.day
 	curr_Time = SysTime.Date
-	InsBufLine(hbuf, ln + 8,  "  Created       : @temp_str@/@temp1@/@temp3@")
-	InsBufLine(hbuf, ln + 9,  "  Last Modified :")
+	insert_line_string( ln + 8,  "  Created       : @curr_Time@")
+	insert_line_string( ln + 9,  "  Last Modified :")
 	curr_Tmp = "  Description   : "
 	nlnDesc = ln
 	iLen = strlen (content_str)
-	InsBufLine(hbuf, ln + 10, "  Description   : @content_str@")
-	InsBufLine(hbuf, ln + 11, "  Function List :")
+	insert_line_string( ln + 10, "  Description   : @content_str@")
+	insert_line_string( ln + 11, "  Function List :")
 
 	//插入函数列表
 	ln = insert_file_list(hbuf,hnewbuf,ln + 12) - 12
 	closebuf(hnewbuf)
-	InsBufLine(hbuf, ln + 12, "  History       :")
-	InsBufLine(hbuf, ln + 13, "  1.Date        : @curr_Time@")
+	insert_line_string( ln + 12, "  History       :")
+	insert_line_string( ln + 13, "  1.Date        : @curr_Time@")
 
 	if( strlen(author_name)>0 )
 	{
-		InsBufLine(hbuf, ln + 14, "    Author      : @name_str@")
+		insert_line_string( ln + 14, "    Author      : @name_str@")
 	}
 	else
 	{
-		InsBufLine(hbuf, ln + 14, "    Author      : #")
+		insert_line_string( ln + 14, "    Author      : #")
 	}
-	InsBufLine(hbuf, ln + 15, "    Modification: Created file")
-	//InsBufLine(hbuf, ln + 16, "")
-	InsBufLine(hbuf, ln + 16,  "@EndDividingLine@")
-	InsBufLine(hbuf, ln + 17, "")
+	insert_line_string( ln + 15, "    Modification: Created file")
+	//insert_line_string( ln + 16, "")
+    insert_multiline_comments_end(ln + 16)
+	insert_line_string( ln + 17, "")
 	
 	describe_str = ""
 	file_type = get_curr_file_type()
@@ -1858,16 +2362,16 @@ macro insert_file_header_english(hbuf, ln, name_str, content_str)
 	}
 	
 	curr_line = ln + 18
-	curr_line = InsertSection(hbuf, curr_line, "include header files list")
-	curr_line = InsertSection(hbuf, curr_line, "external variables")
-	curr_line = InsertSection(hbuf, curr_line, "external function @describe_str@")
-	curr_line = InsertSection(hbuf, curr_line, "project-wide global variables")
-	curr_line = InsertSection(hbuf, curr_line, "macros")
-	curr_line = InsertSection(hbuf, curr_line, "constants")
-	curr_line = InsertSection(hbuf, curr_line, "enum")
-	curr_line = InsertSection(hbuf, curr_line, "struct")
-	curr_line = InsertSection(hbuf, curr_line, "class @describe_str@")
-	curr_line = InsertSection(hbuf, curr_line, "internal function @describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "include header files list")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "external variables")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "external function @describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "project-wide global variables")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "macros")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "constants")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "enum")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "struct")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "class @describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "internal function @describe_str@")
 
 	if(strlen(content_str) != 0)
 	{
@@ -1897,44 +2401,44 @@ macro insert_file_header_chinese(hbuf, ln, name_str, content_str)
 	DividingLine = get_separator_line()
 	BeginDividingLine = get_multiline_comments_begin()
 	EndDividingLine = get_multiline_comments_end()
-	
+	copyright_str = get_copyright_str()
 	get_function_list(hbuf,hnewbuf)
-	InsBufLine(hbuf, ln + 0,  "@BeginDividingLine@")
-	InsBufLine(hbuf, ln + 1,  "")
-	InsBufLine(hbuf, ln + 2,  "  版权所有 (C), 2017-2028 惠州市蓝微电子有限公司")
-	InsBufLine(hbuf, ln + 3,  "")
-	InsBufLine(hbuf, ln + 4,  " @DividingLine@")
+	insert_line_string( ln + 0,  "@BeginDividingLine@")
+	insert_line_string( ln + 1,  "")
+	insert_line_string( ln + 2,  "@copyright_str@")
+	insert_line_string( ln + 3,  "")
+	insert_line_string( ln + 4,  " @DividingLine@")
 	temp_str = get_file_name(GetBufName (hbuf))
-	InsBufLine(hbuf, ln + 5,  "  文件名称: @temp_str@")
-	InsBufLine(hbuf, ln + 6,  "  版本编号: 初稿")
-	InsBufLine(hbuf, ln + 7,  "  作     者: @name_str@")
+	insert_line_string( ln + 5,  "  文件名称: @temp_str@")
+	insert_line_string( ln + 6,  "  版本编号: 初稿")
+	insert_line_string( ln + 7,  "  作     者: @name_str@")
 	SysTime = get_system_time()
 	curr_Time = SysTime.Date
-	InsBufLine(hbuf, ln + 8,  "  生成日期: @curr_Time@")
-	InsBufLine(hbuf, ln + 9,  "  最近修改:")
+	insert_line_string( ln + 8,  "  生成日期: @curr_Time@")
+	insert_line_string( ln + 9,  "  最近修改:")
 	iLen = strlen (content_str)
 	nlnDesc = ln
-	InsBufLine(hbuf, ln + 10, "  功能描述: @content_str@")
-	InsBufLine(hbuf, ln + 11, "  函数列表:")
+	insert_line_string( ln + 10, "  功能描述: @content_str@")
+	insert_line_string( ln + 11, "  函数列表:")
 
 	//插入函数列表
 	ln = insert_file_list(hbuf,hnewbuf,ln + 12) - 12
 	closebuf(hnewbuf)
-	InsBufLine(hbuf, ln + 12, "  修改历史:")
-	InsBufLine(hbuf, ln + 13, "  1.日     期: @curr_Time@")
+	insert_line_string( ln + 12, "  修改历史:")
+	insert_line_string( ln + 13, "  1.日     期: @curr_Time@")
 
 	if( strlen(author_name)>0 )
 	{
-		InsBufLine(hbuf, ln + 14, "    作     者: @name_str@")
+		insert_line_string( ln + 14, "    作     者: @name_str@")
 	}
 	else
 	{
-		InsBufLine(hbuf, ln + 14, "    作     者: #")
+		insert_line_string( ln + 14, "    作     者: #")
 	}
-	InsBufLine(hbuf, ln + 15, "    修改内容: 创建文件")
-	//InsBufLine(hbuf, ln + 16, "")
-	InsBufLine(hbuf, ln + 16, "@EndDividingLine@")
-	InsBufLine(hbuf, ln + 17, "")
+	insert_line_string( ln + 15, "    修改内容: 创建文件")
+	//insert_line_string( ln + 16, "")
+	insert_line_string( ln + 16, "@EndDividingLine@")
+	insert_line_string( ln + 17, "")
 
 	describe_str = ""
 	file_type = get_curr_file_type()
@@ -1948,16 +2452,16 @@ macro insert_file_header_chinese(hbuf, ln, name_str, content_str)
 	}
 	
 	curr_line = ln + 18
-	curr_line = InsertSection(hbuf, curr_line, "包含头文件")
-	curr_line = InsertSection(hbuf, curr_line, "外部变量@describe_str@")
-	curr_line = InsertSection(hbuf, curr_line, "外部函数@describe_str@")
-	curr_line = InsertSection(hbuf, curr_line, "全局变量")
-	curr_line = InsertSection(hbuf, curr_line, "宏定义")
-	curr_line = InsertSection(hbuf, curr_line, "常量声明")
-	curr_line = InsertSection(hbuf, curr_line, "枚举类型")
-	curr_line = InsertSection(hbuf, curr_line, "结构体类型")
-	curr_line = InsertSection(hbuf, curr_line, "类声明")
-	curr_line = InsertSection(hbuf, curr_line, "内部函数@describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "包含头文件")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "外部变量@describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "外部函数@describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "全局变量")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "宏定义")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "常量声明")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "枚举类型")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "结构体类型")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "类声明")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "内部函数@describe_str@")
 
 	if(strlen(content_str) != 0)
 	{
@@ -1966,11 +2470,11 @@ macro insert_file_header_chinese(hbuf, ln, name_str, content_str)
 
 	//如果没有输入功能描述的话提示输入
 	content_str = Ask("请输入文件功能描述的内容")
-	SetBufIns(hbuf,nlnDesc + 14,0)
-	DelBufLine(hbuf,nlnDesc + 10)
+	SetBufIns(hbuf, nlnDesc + 14, 0)
+	DelBufLine(hbuf, nlnDesc + 10)
 
 	//自动排列显示功能描述
-	comment_content(hbuf,nlnDesc+10,"  功能描述   : ",content_str,0)
+	comment_content(hbuf, nlnDesc+10,"  功能描述   : ", content_str,0)
 }
 
 macro get_function_list(hbuf,hnewbuf)
@@ -2020,7 +2524,7 @@ macro insert_file_list(hbuf,hnewbuf,ln)
 	while (isym < isymMax)
 	{
 		retract_line = GetBufLine(hnewbuf, isym)
-		InsBufLine(hbuf,ln,"              @retract_line@")
+		insert_line_string(ln,"              @retract_line@")
 		ln = ln + 1
 		isym = isym + 1
 	}
@@ -2079,7 +2583,7 @@ macro comment_content (hbuf,ln,curr_PreStr,content_str,isEnd)
 		curr_Tmp = cat(curr_PreStr,"#");
 		if( (iLen == 0) && (nIdx == (lnMax - 1))
 		{
-			InsBufLine(hbuf, ln, "@curr_Tmp@")
+			insert_line_string( ln, "@curr_Tmp@")
 		}
 		else
 		{
@@ -2139,7 +2643,7 @@ macro comment_content (hbuf,ln,curr_PreStr,content_str,isEnd)
 					temp1 = strmid(content_str,i,i+j)
 					temp1 = cat(curr_PreStr,temp1)
 				}
-				InsBufLine(hbuf, ln, "@temp1@")
+				insert_line_string( ln, "@temp1@")
 				ln = ln + 1
 				curr_PreStr = curr_LeftBlank
 				i = i + j
@@ -2154,7 +2658,7 @@ macro comment_content (hbuf,ln,curr_PreStr,content_str,isEnd)
 			{
 				temp1 = cat(temp1," */")
 			}
-			InsBufLine(hbuf, ln, "@temp1@")
+			insert_line_string( ln, "@temp1@")
 		}
 		ln = ln + 1
 		nIdx = nIdx + 1
@@ -2196,7 +2700,7 @@ macro create_blank_string(nBlankCount)
 	}
 	return local_blank
 }
-
+/*ȥ����ߵĿո��tab*/
 macro trim_left(retract_line)
 {
 	nLen = strlen(retract_line)
@@ -2215,7 +2719,7 @@ macro trim_left(retract_line)
 	}
 	return strmid(retract_line,nIdx,nLen)
 }
-
+/*ȥ���ұߵĿո��tab*/
 macro trim_right(retract_line)
 {
 	nLen = strlen(retract_line)
@@ -2234,6 +2738,8 @@ macro trim_right(retract_line)
 	}
 	return strmid(retract_line,0,nIdx+1)
 }
+
+/*ȥ����ͷ����Ŀո��tab*/
 macro trim_string(retract_line)
 {
 	retract_line = trim_left(retract_line)
@@ -2340,6 +2846,237 @@ macro get_word_form_string(hbuf,retract_line,nBeg,nEnd,chBeg,chSeparator,chEnd)
 	}
 	return nMaxLen
 }
+
+/*
+函数说明信息头
+*/
+macro function_head_comment(hbuf, ln, curr_Func, newFunc)
+{
+	have_parameter = False
+	is_english = test_language_is_english()
+	if(newFunc != 1)
+	{
+		symbol = GetSymbolLocationFromLn(hbuf, ln)
+		//msg("symbol=GetSymbolLocationFromLn(hbuf=@hbuf@, ln=@ln@)=[@symbol@]")
+		if(strlen(symbol) > 0)
+		{
+			hTmpBuf = NewBuf("Tempbuf")
+			if(hTmpBuf == hNil)
+			{
+				stop
+			}
+			//将文件参数头整理成一行并去掉了注释
+			retract_line = get_function_def(hbuf, symbol)
+			iBegin = symbol.ichName
+			//取出返回值定义
+			curr_Temp = strmid(retract_line,0,iBegin)
+			curr_Temp = trim_string(curr_Temp)
+			return_type =  get_first_word(curr_Temp)
+			if(symbol.Type == "Method")
+			{
+				curr_Temp = strmid(curr_Temp, strlen(return_type), strlen(curr_Temp))
+				curr_Temp = trim_string(curr_Temp)
+				if(curr_Temp == "::")
+				{
+					return_type = ""
+				}
+			}
+			if(toupper (return_type) == "MACRO")
+			{
+				//对于宏返回值特殊处理
+				return_type = ""
+			}
+			//从函数头分离出函数参数
+			parameter_len_max = get_word_form_string(hTmpBuf, retract_line, iBegin, strlen(retract_line), "(", "," , ")")
+			parameter_sum = GetBufLineCount(hTmpBuf)
+			ln = symbol.lnFirst
+			SetBufIns (hbuf, ln, 0)
+		}
+	}
+	else
+	{
+		parameter_sum = 0
+		retract_line = ""
+		return_type = ""
+	}
+	
+	insert_multiline_comments_begin(ln)
+	if(True == is_english)
+	{
+		nothing_str = "None"
+		func_name_str =            " Prototype   "
+		func_description_str =     " Description "
+		input_parameter_str =      " Input       "
+		output_parameter_str =     " Output      "
+		ret_str =                  " Return Value"
+		
+		modification_history_str = " History        "
+		date_str =                 "  1.Data        "
+		autor_str =                "    Author      "
+		modification_details_str = "    Modification"
+		new_function_str =         "Created function."
+		input_function_msg =       "Please input the function description."
+		input_parameter_msg =      "Please input parameter."
+		return_value_type_msg =    "Please input return value type."
+	}
+	else
+	{
+		nothing_str = "无"
+		func_name_str =            " 函 数 名   "
+		func_description_str =     " 功能描述"
+		input_parameter_str =      " 输入参数    "
+		output_parameter_str =     " 输出参数    "
+		ret_str =                  " 返 回 值"
+		
+		modification_history_str = " 历史记录    "
+		date_str =                 "  1. 日期"
+		autor_str =                "     作者"
+		modification_details_str = "     修改"
+		new_function_str =         "生成函数"
+		input_function_msg =       "请输入函数功能描述的内容."
+		input_parameter_msg =      "请输入函数参数名."
+		return_value_type_msg =    "请输入返回值类型."
+	}
+
+	msg("curr_Func=@curr_Func@")
+	temp_str = "#"
+	if( strlen(curr_Func) > 0 )
+	{
+		temp_str = curr_Func
+	}
+	insert_line_string(ln+1, "@func_name_str@: @temp_str@")
+	
+	oldln = ln
+	insert_line_string(ln+2, "@func_description_str@: ")
+	curr_Ins = "@input_parameter_str@: "
+	row_offet = strlen(curr_Ins)
+	if(false == is_english)
+	{
+        row_offet = 4
+	}
+	msg("row_offet=strlen(\"@curr_Ins@\")=@row_offet@")
+	if(newFunc != True)
+	{
+		//对于已经存在的函数插入函数参数
+		i = 0
+		while ( i < parameter_sum)
+		{
+			parameter = GetBufLine(hTmpBuf, i)
+			para_len = strlen(parameter);
+			completion_blank_num = 1//parameter_len_max - para_len + 1 
+			fill_spaces = create_blank_string(completion_blank_num)
+			curr_Tmp = cat(parameter, fill_spaces)
+			ln = ln + 1
+			curr_Tmp = cat(curr_Ins, curr_Tmp)
+			insert_line_string(ln+2, curr_Tmp)
+			have_parameter = True
+			curr_Ins = create_blank_string(row_offet)
+			i++
+		}
+		closebuf(hTmpBuf)
+	}
+	
+	if(False == have_parameter)
+	{
+		ln = ln + 1
+		insert_line_string(ln+2, "@input_parameter_str@: @nothing_str@")
+	}
+	insert_line_string(ln+3, "@output_parameter_str@: @nothing_str@")
+	insert_line_string(ln+4, "@ret_str@: @return_type@") 
+	insert_line_string(ln+5, " ");
+	insert_line_string(ln+6, "@modification_history_str@:")
+	curr_Time = get_system_time_date()
+	insert_line_string( ln+7, "@date_str@:@curr_Time@")
+
+	author_name = get_curr_autor_name()
+	temp_str = "#"
+	if( strlen(author_name) > 0 )
+	{
+		temp_str = author_name
+	}
+	insert_line_string(ln+8, "@autor_str@: @temp_str@")
+	insert_line_string(ln+9, "@modification_details_str@: @new_function_str@")
+ 
+	insert_multiline_comments_end(ln+10)
+	
+	if ((newFunc == 1) && (strlen(curr_Func)>0))
+	{
+		insert_line_string(ln+11, "int32_t @curr_Func@( # )")
+		insert_line_string(ln+12, "{");
+		insert_line_string(ln+13, "\t#");
+		insert_line_string(ln+14, "}");
+		search_forward()
+	}
+	
+	hwnd = GetCurrentWnd()
+	if (hwnd == 0)
+		stop
+	sel = GetWndSel(hwnd)
+	sel.ichFirst = 0
+	sel.ichLim = sel.ichFirst
+	sel.lnFirst = ln + 11
+	sel.lnLast = ln + 11
+	content_str = Ask(input_function_msg)
+	setWndSel(hwnd,sel)
+	DelBufLine(hbuf,oldln + 2)
+
+	//显示输入的功能描述内容
+	newln = comment_content(hbuf,oldln+2,"@func_description_str@: ",content_str,0) - 2
+	ln = ln + newln - oldln
+	if ((newFunc == 1) && (strlen(curr_Func)>0))
+	{
+		isFirstParam = 1
+
+		//提示输入新函数的返回值
+		return_type = Ask(return_value_type_msg)
+		if(strlen(return_type) > 0)
+		{
+			PutBufLine(hbuf, ln+1, "@ret_str@: @curr_Ret@")
+			PutBufLine(hbuf, ln+11, "@curr_Ret@ @curr_Func@(   )")
+			SetbufIns(hbuf, ln+11, strlen(return_type)+strlen(curr_Func) + 3
+		}
+		curr_FuncDef = ""
+		sel.ichFirst = strlen(curr_Func)+strlen(return_type) + 3
+		sel.ichLim = sel.ichFirst + 1
+		//循环输入参数
+		while (1)
+		{
+			curr_Param = ask(input_parameter_msg)
+			curr_Param = trim_string(curr_Param)
+			curr_Tmp = cat(curr_Ins, curr_Param)
+			curr_Param = cat(curr_FuncDef, curr_Param)
+			sel.lnFirst = ln + 11
+			sel.lnLast = ln + 11
+			setWndSel(hwnd,sel)
+			sel.ichFirst = sel.ichFirst + strlen(curr_Param)
+			sel.ichLim = sel.ichFirst
+			oldsel = sel
+			if(isFirstParam == 1)
+			{
+				PutBufLine(hbuf, ln + 2, "@curr_Tmp@")
+				isFirstParam = 0
+			}
+			else
+			{
+				ln = ln + 1
+				insert_line_string( ln + 2, "@curr_Tmp@")
+				oldsel.lnFirst = ln + 11
+				oldsel.lnLast = ln + 11
+			}
+			SetBufSelText(hbuf, curr_Param)
+			curr_Ins = "         "
+			curr_FuncDef = ", "
+			oldsel.lnFirst = ln + 13
+			oldsel.lnLast = ln + 13
+			oldsel.ichFirst = 4
+			oldsel.ichLim = 5
+			setWndSel(hwnd, oldsel)
+		}
+	}
+	
+	return ln + 14
+}
+/*
 //函数头信息中文版
 macro function_head_comment_chinese(hbuf, ln, curr_Func, author_name,newFunc)
 {
@@ -2389,22 +3126,18 @@ macro function_head_comment_chinese(hbuf, ln, curr_Func, author_name,newFunc)
 		curr_Ret = ""
 	}
 	
-	DividingLine = get_separator_line()
-	BeginDividingLine = get_multiline_comments_begin()
-	EndDividingLine = get_multiline_comments_end()
-	
-	InsBufLine(hbuf, ln, "@BeginDividingLine@")
+	insert_line_string( ln, "@BeginDividingLine@")
 	
 	if( strlen(curr_Func)>0 )
 	{
-		InsBufLine(hbuf, ln+1, " 函 数 名: @curr_Func@")
+		insert_line_string( ln+1, " 函 数 名: @curr_Func@")
 	}
 	else
 	{
-		InsBufLine(hbuf, ln+1, " 函 数 名: #")
+		insert_line_string( ln+1, " 函 数 名: #")
 	}
 	oldln = ln
-	InsBufLine(hbuf, ln+2, " 功能描述: ")
+	insert_line_string( ln+2, " 功能描述: ")
 	curr_Ins = " 输入参数: "
 	if(newFunc != 1)
 	{
@@ -2418,7 +3151,7 @@ macro function_head_comment_chinese(hbuf, ln, curr_Func, author_name,newFunc)
 			curr_Tmp = cat(curr_Tmp,local_blank)
 			ln = ln + 1
 			curr_Tmp = cat(curr_Ins,curr_Tmp)
-			InsBufLine(hbuf, ln+2, "@curr_Tmp@")
+			insert_line_string( ln+2, "@curr_Tmp@")
 			iIns = 1
 			curr_Ins = "           "
 			i = i + 1
@@ -2428,39 +3161,38 @@ macro function_head_comment_chinese(hbuf, ln, curr_Func, author_name,newFunc)
 	if(iIns == 0)
 	{
 			ln = ln + 1
-			InsBufLine(hbuf, ln+2, " 输入参数  : 无")
+			insert_line_string( ln+2, " 输入参数  : 无")
 	}
-	InsBufLine(hbuf, ln+3, " 输出参数: 无")
-	InsBufLine(hbuf, ln+4, " 返 回 值: @curr_Ret@")
-	//InsBufLine(hbuf, ln+5, " 调用函数:")
-	//InsBufLine(hbuf, ln+6, " 被调函数:")
+	insert_line_string( ln+3, " 输出参数: 无")
+	insert_line_string( ln+4, " 返 回 值: @curr_Ret@")
+	//insert_line_string( ln+5, " 调用函数:")
+	//insert_line_string( ln+6, " 被调函数:")
 	del_line_num = -2 //因为注释掉上面两行所以下面的行相应的上移两行
 	InsbufLIne(hbuf, ln+7+del_line_num, " ");
-	InsBufLine(hbuf, ln+8+del_line_num, " 修改历史:")
+	insert_line_string( ln+8+del_line_num, " 修改历史:")
 	SysTime = get_system_time();
 	curr_Time = SysTime.Date
 
-	InsBufLine(hbuf, ln+9+del_line_num, "  1.日     期: @curr_Time@")
-
+	insert_line_string( ln+9+del_line_num, "  1.日     期: @curr_Time@")
 	if( strlen(author_name)>0 )
 	{
-		InsBufLine(hbuf, ln+10+del_line_num, "    作     者: @author_name@")
+		insert_line_string( ln+10+del_line_num, "    作     者: @author_name@")
 	}
 	else
 	{
-		InsBufLine(hbuf, ln+10+del_line_num, "    作     者: #")
+		insert_line_string( ln+10+del_line_num, "    作     者: #")
 	}
-	InsBufLine(hbuf, ln+11+del_line_num, "    修改内容: 新生成函数")
-	//InsBufLine(hbuf, ln+12+del_line_num, "")
+	insert_line_string( ln+11+del_line_num, "    修改内容: 新生成函数")
+	//insert_line_string( ln+12+del_line_num, "")
 	temp_line = -1 //因为注释掉上面1行所以下面的行相应的上移1行
 	del_line_num = del_line_num+temp_line
-	InsBufLine(hbuf, n+13+del_line_num, "@EndDividingLine@")
+	insert_line_string( n+13+del_line_num, "@EndDividingLine@")
 	if ((newFunc == 1) && (strlen(curr_Func)>0))
 	{
-		InsBufLine(hbuf, ln+14+del_line_num, "UINT32_T  @curr_Func@( # )")
-		InsBufLine(hbuf, ln+15+del_line_num, "{");
-		InsBufLine(hbuf, ln+16+del_line_num, "    #");
-		InsBufLine(hbuf, ln+17+del_line_num, "}");
+		insert_line_string( ln+14+del_line_num, "UINT32_T  @curr_Func@( # )")
+		insert_line_string( ln+15+del_line_num, "{");
+		insert_line_string( ln+16+del_line_num, "    #");
+		insert_line_string( ln+17+del_line_num, "}");
 		search_forward()
 	}
 	hwnd = GetCurrentWnd()
@@ -2514,7 +3246,7 @@ macro function_head_comment_chinese(hbuf, ln, curr_Func, author_name,newFunc)
 			else
 			{
 				ln = ln + 1
-				InsBufLine(hbuf, ln+2, "@curr_Tmp@")
+				insert_line_string( ln+2, "@curr_Tmp@")
 				oldsel.lnFirst = ln + 14+del_line_num
 				oldsel.lnLast = ln + 14+del_line_num
 			}
@@ -2578,14 +3310,9 @@ macro function_head_comment_english(hbuf, ln, curr_Func, author_name, newFunc)
 		retract_line = ""
 	}
 	
-	DividingLine = get_separator_line()
-	BeginDividingLine = get_multiline_comments_begin()
-	EndDividingLine = get_multiline_comments_end()
-	
-	InsBufLine(hbuf, ln, "@BeginDividingLine@")
-	
-	InsBufLine(hbuf, ln+1, " Prototype    : @curr_Func@")
-	InsBufLine(hbuf, ln+2, " Description  : ")
+	insert_multiline_comments_begin(ln)
+	insert_line_string( ln+1, " Prototype    : @curr_Func@")
+	insert_line_string( ln+2, " Description  : ")
 	oldln  = ln
 	curr_Ins = " Input        : "
 	if(newFunc != 1)
@@ -2602,7 +3329,7 @@ macro function_head_comment_english(hbuf, ln, curr_Func, author_name, newFunc)
 			curr_Tmp = cat(curr_Tmp,local_blank)
 			ln = ln + 1
 			curr_Tmp = cat(curr_Ins,curr_Tmp)
-			InsBufLine(hbuf, ln+2, "@curr_Tmp@")
+			insert_line_string( ln+2, "@curr_Tmp@")
 			iIns = 1
 			curr_Ins = "                "
 			i = i + 1
@@ -2612,12 +3339,12 @@ macro function_head_comment_english(hbuf, ln, curr_Func, author_name, newFunc)
 	if(iIns == 0)
 	{
 			ln = ln + 1
-			InsBufLine(hbuf, ln+2, " Input        : None")
+			insert_line_string( ln+2, " Input        : None")
 	}
-	InsBufLine(hbuf, ln+3, " Output       : None")
-	InsBufLine(hbuf, ln+4, " Return Value : @curr_Ret@")
-	//InsBufLine(hbuf, ln+5, " Calls        : ")
-	//InsBufLine(hbuf, ln+6, " Called By    : ")
+	insert_line_string( ln+3, " Output       : None")
+	insert_line_string( ln+4, " Return Value : @curr_Ret@")
+	//insert_line_string( ln+5, " Calls        : ")
+	//insert_line_string( ln+6, " Called By    : ")
 	del_line_num = -2//因为注释掉上面两行所以下面的行相应的上移两行
 	InsbufLIne(hbuf, ln+7+del_line_num, " ");
 
@@ -2626,20 +3353,20 @@ macro function_head_comment_english(hbuf, ln, curr_Func, author_name, newFunc)
 	temp2=SysTime.month
 	temp3=SysTime.day
 
-	InsBufLine(hbuf, ln + 8+del_line_num, "  History        :")
-	InsBufLine(hbuf, ln + 9+del_line_num, "  1.Date         : @temp1@/@temp2@/@temp3@")
-	InsBufLine(hbuf, ln + 10+del_line_num, "    Author       : @author_name@")
-	InsBufLine(hbuf, ln + 11+del_line_num, "    Modification : Created function")
-	//InsBufLine(hbuf, ln + 12+del_line_num, "")
+	insert_line_string( ln + 8+del_line_num, "  History        :")
+	insert_line_string( ln + 9+del_line_num, "  1.Date         : @temp1@/@temp2@/@temp3@")
+	insert_line_string( ln + 10+del_line_num, "    Author       : @author_name@")
+	insert_line_string( ln + 11+del_line_num, "    Modification : Created function")
+	//insert_line_string( ln + 12+del_line_num, "")
 	temp_line = -1 //因为注释掉上面1行所以下面的行相应的上移1行
 	del_line_num = del_line_num+temp_line
-	InsBufLine(hbuf, ln + 13+del_line_num, "@EndDividingLine@")
+	insert_multiline_comments_end(ln + 13+del_line_num)
 	if ((newFunc == 1) && (strlen(curr_Func)>0))
 	{
-		InsBufLine(hbuf, ln+14+del_line_num, "UINT32_T  @curr_Func@( # )")
-		InsBufLine(hbuf, ln+15+del_line_num, "{");
-		InsBufLine(hbuf, ln+16+del_line_num, "    #");
-		InsBufLine(hbuf, ln+17+del_line_num, "}");
+		insert_line_string( ln+14+del_line_num, "UINT32_T  @curr_Func@( # )")
+		insert_line_string( ln+15+del_line_num, "{");
+		insert_line_string( ln+16+del_line_num, "    #");
+		insert_line_string( ln+17+del_line_num, "}");
 		search_forward()
 	}
 	hwnd = GetCurrentWnd()
@@ -2691,7 +3418,7 @@ macro function_head_comment_english(hbuf, ln, curr_Func, author_name, newFunc)
 			else
 			{
 				ln = ln + 1
-				InsBufLine(hbuf, ln+2, "@curr_Tmp@")
+				insert_line_string( ln+2, "@curr_Tmp@")
 				oldsel.lnFirst = ln + 14+del_line_num
 				oldsel.lnLast = ln + 14+del_line_num
 			}
@@ -2707,6 +3434,7 @@ macro function_head_comment_english(hbuf, ln, curr_Func, author_name, newFunc)
 	}
 	return ln + 17+del_line_num
 }
+*/
 
 macro insert_histort(hbuf, ln)
 {
@@ -2737,6 +3465,8 @@ macro insert_histort(hbuf, ln)
 		}
 		i = i + 1
 	}
+	
+	/*
 	language_is_english = test_language_is_english()
 	if(True == language_is_english)
 	{
@@ -2746,6 +3476,8 @@ macro insert_histort(hbuf, ln)
 	{
 		insert_history_content_english(hbuf,ln,iHistoryCount)
 	}
+	*/
+	insert_history_content(hbuf, ln, iHistoryCount)
 }
 macro update_function_list()
 {
@@ -2791,13 +3523,43 @@ macro update_function_list()
 	//插入函数列表
 	insert_file_list( hbuf,hnewbuf,ln )
 	closebuf(hnewbuf)
- }
+}
 
-macro  insert_history_content_chinese(hbuf,ln,iHostoryCount)
+macro insert_history_content(hbuf, ln, iHostoryCount)
+{
+	date_str = get_system_time_date()
+	author_name = get_curr_autor_name()
+
+	language_is_english = test_language_is_english()
+	if(True == language_is_english)
+	{
+		data_str = "Date         "
+		autor_str = "    Author       "
+		msg_str = "Please input modification"
+		modification_str = "    Modification : "
+	}
+	else
+	{
+		data_str = "日    期  "
+		autor_str = "    作    者   "
+		msg_str = "请输入修改的内容"
+		modification_str = "    修改内容   : "
+	}
+	
+	insert_line_string( ln, "")
+	insert_line_string( ln + 1, "  @iHostoryCount@.@data_str@: @date_str@")
+
+	insert_line_string( ln + 2, autor_str)
+	content_str = Ask(msg_str)
+	comment_content(hbuf, ln + 3, modification_str, content_str, 0)
+}
+
+/*
+macro insert_history_content_chinese(hbuf,ln,iHostoryCount)
 {
 	SysTime = get_system_time();
 	curr_Time = SysTime.Date
-	author_name = getreg(MYNAME)
+	author_name = get_curr_autor_name()
 
 	InsBufLine(hbuf, ln, "")
 	InsBufLine(hbuf, ln + 1, "  @iHostoryCount@.日    期   : @curr_Time@")
@@ -2814,15 +3576,14 @@ macro  insert_history_content_chinese(hbuf,ln,iHostoryCount)
 	comment_content(hbuf,ln + 3,"    修改内容   : ",content_str,0)
 }
 
-
-macro  insert_history_content_english(hbuf,ln,iHostoryCount)
+macro insert_history_content_english(hbuf,ln,iHostoryCount)
 {
 	SysTime = get_system_time();
 	curr_Time = SysTime.Date
 	temp1=SysTime.Year
 	temp2=SysTime.month
 	temp3=SysTime.day
-	author_name = getreg(MYNAME)
+	author_name = get_curr_autor_name()
 	InsBufLine(hbuf, ln, "")
 	InsBufLine(hbuf, ln + 1, "  @iHostoryCount@.Date         : @temp1@/@temp2@/@temp3@")
 
@@ -2830,13 +3591,16 @@ macro  insert_history_content_english(hbuf,ln,iHostoryCount)
 		content_str = Ask("Please input modification")
 		comment_content(hbuf,ln + 3,"    Modification : ",content_str,0)
 }
+*/
 
-macro create_function_def(hbuf, name_str, language)
+macro create_function_def(hbuf, name_str)
 {
 	ln = 0
-
 	//获得当前没有后缀的文件名
-	curr_FileName = get_filename_no_extension(GetBufName (hbuf))
+	str = GetBufName (hbuf)
+	msg("create_function_def(@hbuf@, @name_str@) str = @str@")
+	curr_FileName = get_only_filename(str)
+	msg("create_function_def(@hbuf@, @name_str@) curr_FileName = @curr_FileName@")
 	if(strlen(curr_FileName) == 0)
 	{
 		temp_str = ask("请输入头文件名")
@@ -2904,17 +3668,18 @@ macro create_function_def(hbuf, name_str, language)
 	insert_cplusplus(hOutbuf,0)
 	head_if_def_str(curr_PreH)
 	content_str = get_file_name(GetBufName (hbuf))
-	if(language == 0)
+	is_english = test_language_is_english()
+	if(False == is_english)
 	{
-		content_str = cat(content_str," 的头文件")
+		content_str = cat(content_str, " 的头文件")
 		//插入文件头说明
-		insert_file_header_chinese(hOutbuf,0,name_str,content_str)
+		insert_file_header_chinese(hOutbuf, 0, name_str, content_str)
 	}
 	else
 	{
-		content_str = cat(content_str," header file")
+		content_str = cat(content_str, " header file")
 		//插入文件头说明
-		insert_file_header_english(hOutbuf,0,name_str,content_str)
+		insert_file_header_english(hOutbuf, 0, name_str, content_str)
 	}
 }
 
@@ -3072,17 +3837,7 @@ macro create_func_proc_type(hbuf,ln,curr_Type,symbol)
 macro create_new_header_file()
 {
 	hbuf = GetCurrentBuf()
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	name_str = getreg(MYNAME)
-	if(strlen( name_str ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
+	
 	isymMax = GetBufSymCount(hbuf)
 	isym = 0
 	ln = 0
@@ -3102,19 +3857,21 @@ macro create_new_header_file()
 	insert_cplusplus(hOutbuf,0)
 	head_if_def_str(curr_PreH)
 	content_str = get_file_name(GetBufName (hbuf))
-	if(language == 0)
+	author_name = get_curr_autor_name()
+	is_english = test_language_is_english()
+	if(True == is_english)
 	{
-		content_str = cat(content_str," 的头文件")
+		content_str = cat(content_str, " header file")
 
 		//插入文件头说明
-		insert_file_header_chinese(hOutbuf,0,name_str,content_str)
+		insert_file_header_chinese(hOutbuf,0,author_name,content_str)
 	}
 	else
 	{
-		content_str = cat(content_str," header file")
+		content_str = cat(content_str, " 的头文件")
 
 		//插入文件头说明
-		insert_file_header_english(hOutbuf,0,name_str,content_str)
+		insert_file_header_english(hOutbuf,0,author_name,content_str)
 	}
 
 	lnMax = GetBufLineCount(hOutbuf)
@@ -3304,29 +4061,6 @@ macro replace_in_buffer(hbuf,chOld,chNew,nBeg,nEnd,fMatchCase, fRegExp, fWholeWo
 	}
 }
 
-macro configure_system()
-{
-	curr_language = ASK("Please select language: 0 Chinese ,1 English");
-	if(curr_language == "#")
-	{
-		SetReg ("LANGUAGE", "0")
-	}
-	else
-	{
-		SetReg ("LANGUAGE", curr_language)
-	}
-
-	name_str = ASK("Please input your name");
-	if(name_str == "#")
-	{
-		SetReg ("MYNAME", "")
-	}
-	else
-	{
-		SetReg ("MYNAME", name_str)
-	}
-}
-
 macro get_left_blank(retract_line)
 {
 	nIdx = 0
@@ -3407,11 +4141,11 @@ macro expand_brace_large()
 		else
 		{
 			ln = ln + 1
-			InsBufLine(hbuf, ln, "@temp_left@{")
+			insert_line_string( ln, "@temp_left@{")
 			nlineCount = nlineCount + 1
 		}
-		InsBufLine(hbuf, ln + 1, "@temp_left@    ")
-		InsBufLine(hbuf, ln + 2, "@temp_left@}")
+		insert_line_string( ln + 1, "@temp_left@    ")
+		insert_line_string( ln + 2, "@temp_left@}")
 		nlineCount = nlineCount + 2
 		SetBufIns (hbuf, ln + 1, strlen(temp_left)+4)
 	}
@@ -3504,15 +4238,15 @@ macro expand_brace_large()
 		if(strlen(curr_Right) != 0)
 		{
 			//最后插入最后一行没有被选择的内容
-			InsBufLine(hbuf, sel.lnLast + 1, "@temp_left@@curr_Right@")
+			insert_line_string( sel.lnLast + 1, "@temp_left@@curr_Right@")
 		}
-		InsBufLine(hbuf, sel.lnLast + 1, "@temp_left@}")
+		insert_line_string( sel.lnLast + 1, "@temp_left@}")
 		nlineCount = nlineCount + 1
 		if(nLeft < sel.ichFirst)
 		{
 			//如果选中区前的内容不是空格，则要保留该部分内容
 			PutBufLine(hbuf,ln,curr_Old)
-			InsBufLine(hbuf, ln+1, "@temp_left@{")
+			insert_line_string( ln+1, "@temp_left@{")
 			nlineCount = nlineCount + 1
 			ln = ln + 1
 		}
@@ -3520,12 +4254,12 @@ macro expand_brace_large()
 		{
 			//如果选中区前没有内容直接删除该行
 			DelBufLine(hbuf,ln)
-			InsBufLine(hbuf, ln, "@temp_left@{")
+			insert_line_string( ln, "@temp_left@{")
 		}
 		if(strlen(curr_Mid) > 0)
 		{
 			//插入第一行选择区的内容
-			InsBufLine(hbuf, ln+1, "@temp_left@    @curr_Mid@")
+			insert_line_string( ln+1, "@temp_left@    @curr_Mid@")
 			nlineCount = nlineCount + 1
 			ln = ln + 1
 		}
@@ -3641,7 +4375,7 @@ macro del_compound_statement()
 			curr_New = trim_string(curr_New)
 			if(curr_New != "")
 			{
-				InsBufLine(hbuf,ln + 1,"@temp_left@    @curr_NewLine@");
+				insert_line_string(ln + 1,"@temp_left@    @curr_NewLine@");
 			}
 			sel.lnFirst = ln
 			sel.lnLast = ln
@@ -3843,12 +4577,12 @@ macro insert_else()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
-		InsBufLine(hbuf, ln,temp_left)
+		insert_line_string( ln,temp_left)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
 	temp_left = val.temp_left
-	InsBufLine(hbuf, ln, "@temp_left@else")
+	insert_line_string( ln, "@temp_left@else")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		PutBufLine(hbuf,ln+2, "@temp_left@    ")
@@ -3867,9 +4601,9 @@ macro insert_case()
 	retract_line = GetBufLine( hbuf, ln )
 	nLeft = get_left_blank(retract_line)
 	temp_left = strmid(retract_line,0,nLeft);
-	InsBufLine(hbuf, ln, "@temp_left@" # "case # :")
-	InsBufLine(hbuf, ln + 1, "@temp_left@" # "    " # "#")
-	InsBufLine(hbuf, ln + 2, "@temp_left@" # "    " # "break;")
+	insert_line_string( ln, "@temp_left@" # "case # :")
+	insert_line_string( ln + 1, "@temp_left@" # "    " # "#")
+	insert_line_string( ln + 2, "@temp_left@" # "    " # "break;")
 	search_forward()
 }
 
@@ -3882,8 +4616,8 @@ macro insert_switch()
 	retract_line = GetBufLine( hbuf, ln )
 	nLeft = get_left_blank(retract_line)
 	temp_left = strmid(retract_line,0,nLeft);
-	InsBufLine(hbuf, ln, "@temp_left@switch ( # )")
-	InsBufLine(hbuf, ln + 1, "@temp_left@" # "{")
+	insert_line_string( ln, "@temp_left@switch ( # )")
+	insert_line_string( ln + 1, "@temp_left@" # "{")
 	nSwitch = ask("请输入case的个数")
 	insert_multi_case_proc(hbuf,temp_left,nSwitch)
 	search_forward()
@@ -3920,9 +4654,9 @@ macro insert_multi_case_proc(hbuf,temp_left,nSwitch)
 			if(strlen(retract_line) != 0 )
 			{
 				ln = ln + 3
-				InsBufLine(hbuf, ln - 1, "@temp_left@    " # "case @retract_line@:")
-				InsBufLine(hbuf, ln    , "@temp_left@    " # "    " # "#")
-				InsBufLine(hbuf, ln + 1, "@temp_left@    " # "    " # "break;")
+				insert_line_string( ln - 1, "@temp_left@    " # "case @retract_line@:")
+				insert_line_string( ln    , "@temp_left@    " # "    " # "#")
+				insert_line_string( ln + 1, "@temp_left@    " # "    " # "break;")
 			}
 			i = i + 1
 		}
@@ -3933,15 +4667,15 @@ macro insert_multi_case_proc(hbuf,temp_left,nSwitch)
 		while(nIdx < nSwitch)
 		{
 			ln = ln + 3
-			InsBufLine(hbuf, ln - 1, "@temp_left@    " # "case # :")
-			InsBufLine(hbuf, ln    , "@temp_left@    " # "    " # "#")
-			InsBufLine(hbuf, ln + 1, "@temp_left@    " # "    " # "break;")
+			insert_line_string( ln - 1, "@temp_left@    " # "case # :")
+			insert_line_string( ln    , "@temp_left@    " # "    " # "#")
+			insert_line_string( ln + 1, "@temp_left@    " # "    " # "break;")
 			nIdx = nIdx + 1
 		}
 	}
-	InsBufLine(hbuf, ln + 2, "@temp_left@    " # "default:")
-	InsBufLine(hbuf, ln + 3, "@temp_left@    " # "    " # "#")
-	InsBufLine(hbuf, ln + 4, "@temp_left@" # "}")
+	insert_line_string( ln + 2, "@temp_left@    " # "default:")
+	insert_line_string( ln + 3, "@temp_left@    " # "    " # "#")
+	insert_line_string( ln + 4, "@temp_left@" # "}")
 	SetWndSel(hwnd, sel)
 	search_forward()
 }
@@ -4057,7 +4791,7 @@ macro insert_do_while()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
-		InsBufLine(hbuf, ln,temp_left)
+		insert_line_string( ln,temp_left)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
@@ -4068,7 +4802,7 @@ macro insert_do_while()
 	}
 	PutBufLine(hbuf, sel.lnLast + val.nLineCount, "@temp_left@}while ( # );")
 	//SetBufIns (hbuf, sel.lnLast + val.nLineCount, strlen(temp_left)+8)
-	InsBufLine(hbuf, ln, "@temp_left@do")
+	insert_line_string( ln, "@temp_left@do")
 	search_forward()
 }
 
@@ -4081,12 +4815,12 @@ macro insert_while()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
-		InsBufLine(hbuf, ln,temp_left)
+		insert_line_string( ln,temp_left)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
 	temp_left = val.temp_left
-	InsBufLine(hbuf, ln, "@temp_left@while ( # )")
+	insert_line_string( ln, "@temp_left@while ( # )")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		PutBufLine(hbuf,ln+2, "@temp_left@    #")
@@ -4104,12 +4838,12 @@ macro insert_for()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
-		InsBufLine(hbuf, ln,temp_left)
+		insert_line_string( ln,temp_left)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
 	temp_left = val.temp_left
-	InsBufLine(hbuf, ln,"@temp_left@for ( # ; # ; # )")
+	insert_line_string( ln,"@temp_left@for ( # ; # ; # )")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		PutBufLine(hbuf,ln+2, "@temp_left@    #")
@@ -4134,12 +4868,12 @@ macro insert_if()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
-		InsBufLine(hbuf, ln,temp_left)
+		insert_line_string( ln,temp_left)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
 	temp_left = val.temp_left
-	InsBufLine(hbuf, ln, "@temp_left@if ( # )")
+	insert_line_string( ln, "@temp_left@if ( # )")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		PutBufLine(hbuf,ln+2, "@temp_left@    #")
@@ -4459,7 +5193,7 @@ macro comment_cvt_line(lnCurrent, isCommentEnd)
 			retract_line[ich+1] = "*"
 			retract_line = cat(retract_line,"  */")
 			DelBufLine(hbuf,lnCurrent)
-			InsBufLine(hbuf,lnCurrent,retract_line)
+			insert_line_string(lnCurrent,retract_line)
 			return fIsEnd
 		}
 		ich = ich + 1
@@ -4557,6 +5291,15 @@ macro get_filename_no_extension(str)
 }
 
 /*
+获取文件名不带路径和后缀名
+*/
+macro get_only_filename(str)
+{
+	data = parse_file_path_name_extension(str)
+	return data.name
+}
+
+/*
 获取文件名(包含后缀名)
 */
 macro get_file_name(str)
@@ -4584,37 +5327,55 @@ macro insert_ifndef()
 macro insert_cplusplus(hbuf,ln)
 {
 	temp = get_single_line_comments_str()
-	InsBufLine(hbuf, ln, "")
-	InsBufLine(hbuf, ln, "@temp@")
-	InsBufLine(hbuf, ln, "#endif /* __cplusplus */")
-	InsBufLine(hbuf, ln, "#endif")
-	InsBufLine(hbuf, ln, "extern \"C\"{")
-	InsBufLine(hbuf, ln, "#if __cplusplus")
-	InsBufLine(hbuf, ln, "#ifdef __cplusplus")
-	InsBufLine(hbuf, ln, "@temp@")
+	insert_line_string( ln, "")
+	insert_line_string( ln, "@temp@")
+	insert_line_string( ln, "#endif /* __cplusplus */")
+	insert_line_string( ln, "#endif")
+	insert_line_string( ln, "extern \"C\"{")
+	insert_line_string( ln, "#if __cplusplus")
+	insert_line_string( ln, "#ifdef __cplusplus")
+	insert_line_string( ln, "@temp@")
 
 	line = GetBufLineCount (hbuf)
-	InsBufLine(hbuf, line, "@temp@")
-	InsBufLine(hbuf, line, "#endif /* __cplusplus */")
-	InsBufLine(hbuf, line, "#endif")
-	InsBufLine(hbuf, line, "}")
-	InsBufLine(hbuf, line, "#if __cplusplus")
-	InsBufLine(hbuf, line, "#ifdef __cplusplus")
-	InsBufLine(hbuf, line, "@temp@")
+	insert_line_string( line, "@temp@")
+	insert_line_string( line, "#endif /* __cplusplus */")
+	insert_line_string( line, "#endif")
+	insert_line_string( line, "}")
+	insert_line_string( line, "#if __cplusplus")
+	insert_line_string( line, "#ifdef __cplusplus")
+	insert_line_string( line, "@temp@")
 }
 
-macro revise_comment_proc(hbuf,ln,commend_str,author_name,alignment_line)
+macro get_question_str()
 {
+	ret_str = ""
+	question_v = GetReg ("PNO")
+	if(strlen(question_v)>0)
+	{
+		is_english = test_language_is_english()
+		if(True == is_english)
+		{
+			problem_str = "Problem NO."
+		}
+		else
+		{
+			problem_str = "问题单号"
+		}
+		ret_str = "   @problem_str@ : @question_v@"
+	}
+	return ret_str
+}
+
+macro revise_comment_proc(hbuf, ln, commend_str, author_name, alignment_line)
+{
+	date_str = get_system_time_date()
+	question_str = get_question_str()
+	
 	if (commend_str == "ap")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
 		DelBufLine(hbuf, ln)
 		question_v = add_promble_number()
-		InsBufLine(hbuf, ln, "@alignment_line@/* 问 题 单: @question_v@     修改人:@author_name@,   时间:@temp_str@/@temp1@/@temp3@ ");
+		insert_line_string( ln, "@alignment_line@/* 问 题 单: @question_v@     修改人:@author_name@,   时间:@date_str@ ");
 		content_str = Ask("修改原因")
 		temp_left = cat(alignment_line,"   修改原因: ");
 		if(strlen(temp_left) > 70)
@@ -4627,93 +5388,38 @@ macro revise_comment_proc(hbuf,ln,commend_str,author_name,alignment_line)
 	}
 	else if (commend_str == "ab")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
 		DelBufLine(hbuf, ln)
-		question_v = GetReg ("PNO")
-		if(strlen(question_v)>0)
-		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@*/");
-		}
-		else
-		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
-		}
+		insert_line_string(ln, "@alignment_line@/* BEGIN: Added by @author_name@, @date_str@ @question_str@*/");
 		return
 	}
 	else if (commend_str == "ae")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
 		DelBufLine(hbuf, ln)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END:   Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string(ln, "@alignment_line@/* END:   Added by @author_name@, @date_str@ */");
 		return
 	}
 	else if (commend_str == "db")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
 		DelBufLine(hbuf, ln)
-		question_v = GetReg ("PNO")
-		if(strlen(question_v) > 0)
-		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@*/");
-		}
-		else
-		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
-		}
-
+		insert_line_string(ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @date_str@ @question_str@*/")
 		return
 	}
 	else if (commend_str == "de")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
-		DelBufLine(hbuf, ln + 0)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		DelBufLine(hbuf, ln)
+		insert_line_string(ln, "@alignment_line@/* END: Deleted by @author_name@, @date_str@ */")
 		return
 	}
 	else if (commend_str == "mb")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
 		DelBufLine(hbuf, ln)
-		question_v = GetReg ("PNO")
-			if(strlen(question_v) > 0)
-		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@   问题单号:@question_v@*/");
-		}
-		else
-		{
-			InsBufLine(hbuf, ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
-		}
+		insert_line_string(ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @date_str@ @question_str@*/")
 		return
 	}
 	else if (commend_str == "me")
 	{
-		SysTime = get_system_time()
-		temp_str=SysTime.Year
-		temp1=SysTime.month
-		temp3=SysTime.day
-
 		DelBufLine(hbuf, ln)
-		InsBufLine(hbuf, ln, "@alignment_line@/* END:   Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		insert_line_string(ln, "@alignment_line@/* END:   Modified by @author_name@, @date_str@ */")
 		return
 	}
 }
@@ -4724,21 +5430,10 @@ macro insert_revise_add()
 	sel = GetWndSel(hwnd)
 	hbuf = GetCurrentBuf()
 	lnMax = GetBufLineCount(hbuf)
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
-	SysTime = get_system_time()
-	temp_str=SysTime.Year
-	temp1=SysTime.month
-	temp3=SysTime.day
+
+	author_name = get_curr_autor_name()
+	date_str = get_system_time_date()
+	question_str = get_question_str()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
@@ -4749,23 +5444,16 @@ macro insert_revise_add()
 		nLeft = get_left_blank(retract_line)
 		temp_left = strmid(retract_line,0,nLeft);
 	}
-	question_v = GetReg ("PNO")
-	if(strlen(question_v)>0)
-	{
-		InsBufLine(hbuf, sel.lnFirst, "@temp_left@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
-	}
-	else
-	{
-		InsBufLine(hbuf, sel.lnFirst, "@temp_left@/* BEGIN: Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
-	}
+	
+	insert_line_string( sel.lnFirst, "@temp_left@/* BEGIN: Added by @author_name@, @date_str@ @question_str@*/")
 
 	if(sel.lnLast < lnMax - 1)
 	{
-		InsBufLine(hbuf, sel.lnLast + 2, "@temp_left@/* END:   Added by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
+		insert_line_string( sel.lnLast + 2, "@temp_left@/* END:   Added by @author_name@, @date_str@ @question_str@*/")
 	}
 	else
 	{
-		AppendBufLine(hbuf, "@temp_left@/* END:   Added by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		AppendBufLine(hbuf, "@temp_left@/* END:   Added by @author_name@, @date_str@ */")
 	}
 	SetBufIns(hbuf,sel.lnFirst + 1,strlen(temp_left))
 }
@@ -4776,21 +5464,10 @@ macro insert_revise_del()
 	sel = GetWndSel(hwnd)
 	hbuf = GetCurrentBuf()
 	lnMax = GetBufLineCount(hbuf)
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
-	SysTime = get_system_time()
-	temp_str=SysTime.Year
-	temp1=SysTime.month
-	temp3=SysTime.day
+	
+	author_name = get_curr_autor_name()
+	date_str = get_system_time_date()
+	question_str = get_question_str()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
@@ -4801,23 +5478,15 @@ macro insert_revise_del()
 		nLeft = get_left_blank(retract_line)
 		temp_left = strmid(retract_line,0,nLeft);
 	}
-	question_v = GetReg ("PNO")
-	if(strlen(question_v)>0)
-	{
-		InsBufLine(hbuf, sel.lnFirst, "@temp_left@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
-	}
-	else
-	{
-		InsBufLine(hbuf, sel.lnFirst, "@temp_left@/* BEGIN: Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
-	}
+	insert_line_string(sel.lnFirst, "@temp_left@/* BEGIN: Deleted by @author_name@, @date_str@ @question_str@*/")
 
 	if(sel.lnLast < lnMax - 1)
 	{
-		InsBufLine(hbuf, sel.lnLast + 2, "@temp_left@/* END:   Deleted by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
+		insert_line_string(sel.lnLast + 2, "@temp_left@/* END:   Deleted by @author_name@, @date_str@ @question_str@*/")
 	}
 	else
 	{
-		AppendBufLine(hbuf, "@temp_left@/* END:   Deleted by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		AppendBufLine(hbuf, "@temp_left@/* END:   Deleted by @author_name@, @date_str@ */");
 	}
 	SetBufIns(hbuf,sel.lnFirst + 1,strlen(temp_left))
 }
@@ -4828,21 +5497,10 @@ macro insert_revise_modify()
 	sel = GetWndSel(hwnd)
 	hbuf = GetCurrentBuf()
 	lnMax = GetBufLineCount(hbuf)
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
-	SysTime = get_system_time()
-	temp_str=SysTime.Year
-	temp1=SysTime.month
-	temp3=SysTime.day
+	
+	author_name = get_curr_autor_name()
+	date_str = get_system_time_date()
+	question_str = get_question_str()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		temp_left = create_blank_string(sel.ichFirst)
@@ -4853,23 +5511,16 @@ macro insert_revise_modify()
 		nLeft = get_left_blank(retract_line)
 		temp_left = strmid(retract_line,0,nLeft);
 	}
-	question_v = GetReg ("PNO")
-	if(strlen(question_v)>0)
-	{
-		InsBufLine(hbuf, sel.lnFirst, "@temp_left@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
-	}
-	else
-	{
-		InsBufLine(hbuf, sel.lnFirst, "@temp_left@/* BEGIN: Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
-	}
+
+	insert_line_string( sel.lnFirst, "@temp_left@/* BEGIN: Modified by @author_name@, @date_str@ @question_str@*/")
 
 	if(sel.lnLast < lnMax - 1)
 	{
-		InsBufLine(hbuf, sel.lnLast + 2, "@temp_left@/* END:   Modified by @author_name@, @temp_str@/@temp1@/@temp3@   PN:@question_v@ */");
+		insert_line_string( sel.lnLast + 2, "@temp_left@/* END:   Modified by @author_name@, @date_str@  @question_str@*/")
 	}
 	else
 	{
-		AppendBufLine(hbuf, "@temp_left@/* END:   Modified by @author_name@, @temp_str@/@temp1@/@temp3@ */");
+		AppendBufLine(hbuf, "@temp_left@/* END:   Modified by @author_name@, @date_str@ */");
 	}
 	SetBufIns(hbuf,sel.lnFirst + 1,strlen(temp_left))
 }
@@ -4892,7 +5543,7 @@ macro if_define_string(temp_str)
 	hbuf = GetCurrentBuf()
 	if(lnLast + 1 < lnMax)
 	{
-		InsBufLine(hbuf, lnLast+1, "@temp_left@#endif /* @temp_str@ */")
+		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
 	}
 	else if(lnLast + 1 == lnMax)
 	{
@@ -4903,7 +5554,7 @@ macro if_define_string(temp_str)
 		AppendBufLine(hbuf, "")
 		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
 	}
-	InsBufLine(hbuf, lnFirst, "@temp_left@#ifdef @temp_str@")
+	insert_line_string( lnFirst, "@temp_left@#ifdef @temp_str@")
 	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
 }
 
@@ -4924,7 +5575,7 @@ macro if_undefine_string(temp_str)
 	hbuf = GetCurrentBuf()
 	if(lnLast + 1 < lnMax)
 	{
-		InsBufLine(hbuf, lnLast+1, "@temp_left@#endif /* @temp_str@ */")
+		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
 	}
 	else if(lnLast + 1 == lnMax)
 	{
@@ -4935,7 +5586,7 @@ macro if_undefine_string(temp_str)
 		AppendBufLine(hbuf, "")
 		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
 	}
-	InsBufLine(hbuf, lnFirst, "@temp_left@#ifndef @temp_str@")
+	insert_line_string( lnFirst, "@temp_left@#ifndef @temp_str@")
 	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
 }
 
@@ -4962,7 +5613,7 @@ macro pre_def_if_str(temp_str)
 	hbuf = GetCurrentBuf()
 	if(lnLast + 1 < lnMax)
 	{
-		InsBufLine(hbuf, lnLast+1, "@temp_left@#endif /* #if @temp_str@ */")
+		insert_line_string( lnLast+1, "@temp_left@#endif /* #if @temp_str@ */")
 	}
 	else if(lnLast + 1 == lnMax)
 	{
@@ -4973,7 +5624,7 @@ macro pre_def_if_str(temp_str)
 		AppendBufLine(hbuf, "")
 		AppendBufLine(hbuf, "@temp_left@#endif /* #if @temp_str@ */")
 	}
-	InsBufLine(hbuf, lnFirst, "@temp_left@#if  @temp_str@")
+	insert_line_string( lnFirst, "@temp_left@#if  @temp_str@")
 	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
 }
 
@@ -4982,118 +5633,67 @@ macro head_if_def_str(temp_str)
 	hwnd = GetCurrentWnd()
 	lnFirst = GetWndSelLnFirst(hwnd)
 	hbuf = GetCurrentBuf()
-	InsBufLine(hbuf, lnFirst, "")
-	InsBufLine(hbuf, lnFirst, "#define @temp_str@")
-	InsBufLine(hbuf, lnFirst, "#ifndef @temp_str@")
+	insert_line_string( lnFirst, "")
+	insert_line_string( lnFirst, "#define @temp_str@")
+	insert_line_string( lnFirst, "#ifndef @temp_str@")
 	iTotalLn = GetBufLineCount (hbuf)
-	InsBufLine(hbuf, iTotalLn, "#endif /* @temp_str@ */")
-	InsBufLine(hbuf, iTotalLn, "")
+	insert_line_string( iTotalLn, "#endif /* @temp_str@ */")
+	insert_line_string( iTotalLn, "")
 }
 
-macro get_system_time()
-{
-	//从sidate取得时间
-	RunCmd ("sidate")
-	SysTime=""
-	SysTime.Year=getreg(Year)
-	if(strlen(SysTime.Year)==0)
-	{
-		setreg(Year,"2018")
-		setreg(Month,"01")
-		setreg(Day,"20")
-		SysTime.Year="2018"
-		SysTime.month="01"
-		SysTime.day="20"
-		SysTime.Date="2018年01月20日"
-	}
-	else
-	{
-		SysTime.Month=getreg(Month)
-		SysTime.Day=getreg(Day)
-		SysTime.Date=getreg(Date)
-		/*SysTime.Date=cat(SysTime.Year,"年")
-		SysTime.Date=cat(SysTime.Date,SysTime.Month)
-		SysTime.Date=cat(SysTime.Date,"月")
-		SysTime.Date=cat(SysTime.Date,SysTime.Day)
-		SysTime.Date=cat(SysTime.Date,"日")*/
-	}
-	return SysTime
-}
-
-macro HeaderFileCreate()
+macro create_header_file()
 {
 	hwnd = GetCurrentWnd()
 	if (hwnd == 0)
 		stop
 	sel = GetWndSel(hwnd)
 	hbuf = GetWndBuf(hwnd)
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
 
-	create_function_def(hbuf, author_name, language)
+	author_name = get_curr_autor_name()
+	create_function_def(hbuf, author_name)
 }
 
-macro FunctionHeaderCreate()
+macro create_function_header()
 {
 	hwnd = GetCurrentWnd()
 	if (hwnd == 0)
 		stop
 	sel = GetWndSel(hwnd)
-	ln = sel.lnFirst
+	sel_column_num = sel.lnFirst
 	hbuf = GetWndBuf(hwnd)
-	language = getreg(LANGUAGE)
-	if(language != 1)
-	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
+	
+	is_english = test_language_is_english()
+	
+	//author_name = get_curr_autor_name()
 	nVer = get_version()
-	lnMax = GetBufLineCount(hbuf)
-	if(ln != lnMax)
+	end_column_num = GetBufLineCount(hbuf)
+	msg("end_column_num=@end_column_num@")
+	if(sel_column_num != end_column_num)
 	{
-		next_line = GetBufLine(hbuf,ln)
+		next_line = GetBufLine(hbuf, sel_column_num)
+		msg("next_line=GetBufLine(hbuf, sel_column_num=@sel_column_num@)=\"@next_line@\"  hbuf=@hbuf@")
 		if( (string_cmp(next_line,"(") != 0xffffffff) || (nVer != 2 ))
 		{
 			symbol = GetCurSymbol()
+			msg("symbol=\"@symbol@\"")
 			if(strlen(symbol) != 0)
 			{
-				if(language == 0)
-				{
-					function_head_comment_chinese(hbuf, ln, symbol, author_name,0)
-				}
-				else
-				{
-					function_head_comment_english(hbuf, ln, symbol, author_name,0)
-				}
+				function_head_comment(hbuf, sel_column_num, symbol, False)
 				return
 			}
 		}
 	}
-	if(language == 0 )
+	
+	if(True == is_english)
 	{
-		function_name = Ask("请输入函数名称:")
-		function_head_comment_chinese(hbuf, ln, function_name, author_name, 1)
+		function_name = Ask("Please input function name")
 	}
 	else
 	{
-		function_name = Ask("Please input function name")
-		function_head_comment_english(hbuf, ln, function_name, author_name, 1)
-
+		function_name = Ask("请输入函数名称:")
 	}
+	
+	function_head_comment(hbuf, sel_column_num, function_name, True)
 }
 
 /*
@@ -5116,6 +5716,9 @@ macro get_program_info()
 	return Record
 }
 
+/*
+插入文件头信息段
+*/
 macro insert_file_header_info()
 {
 	hwnd = GetCurrentWnd()
@@ -5123,25 +5726,18 @@ macro insert_file_header_info()
 		stop
 	ln = 0
 	hbuf = GetWndBuf(hwnd)
-	language = getreg(LANGUAGE)
-	if(language != 1)
+	
+	author_name = get_curr_autor_name()
+	SetBufIns (hbuf, 0, 0)
+
+	is_english = test_language_is_english()
+	if(True == is_english)
 	{
-		language = 0
-	}
-	author_name = getreg(MYNAME)
-	if(strlen( author_name ) == 0)
-	{
-		author_name = Ask("Enter your name:")
-		setreg(MYNAME, author_name)
-	}
-		SetBufIns (hbuf, 0, 0)
-	if(language == 0)
-	{
-		insert_file_header_chinese( hbuf,ln, author_name,"" )
+		insert_file_header_english(hbuf, ln, author_name, "")
 	}
 	else
 	{
-		insert_file_header_english( hbuf,ln, author_name,"" )
+		insert_file_header_chinese(hbuf, ln, author_name, "")
 	}
 }
 
