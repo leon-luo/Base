@@ -539,14 +539,14 @@ macro auto_expand()
 	if (sel.ichFirst == 0)
 		stop
 	hbuf = GetWndBuf(hwnd)
-	ln = sel.lnFirst; //当前所在行
+	
 	// get line the selection (insertion point) is on
-	line_str = GetBufLine(hbuf, ln)
-	msg("line_str= GetBufLine(hbuf=@hbuf@, sel.lnFirst=@ln@) = [@line_str@]")
+	line_str = GetBufLine(hbuf, sel.lnFirst);
+
 	// parse word just to the left of the insertion point
 	wordinfo = get_word_left_of_ich(sel.ichFirst, line_str)
 	msg("wordinfo = [@wordinfo@]")
-	
+	ln = sel.lnFirst; //当前所在行
 	msg("ln = sel.lnFirst = [@ln@]  sel = [@sel@]")
 	chTab = CharFromAscii(9)
 	chSpace = CharFromAscii(32);
@@ -3509,6 +3509,216 @@ macro check_brace(retract_line, ichBeg, ichEnd, chBeg, chEnd, nCheckCount, isCom
 	return retVal
 }
 
+macro insert_do_while()
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
+	ln = sel.lnFirst
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		temp_left = create_blank_string(sel.ichFirst)
+		insert_line_string( ln, temp_left)
+		SetWndSel(hwnd,sel)
+	}
+	val = expand_brace_large()
+	temp_left = val.temp_left
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		PutBufLine(hbuf,ln+1, "@temp_left@    #")
+	}
+	PutBufLine(hbuf, sel.lnLast + val.nLineCount, "@temp_left@}while ( # );")
+	//SetBufIns (hbuf, sel.lnLast + val.nLineCount, strlen(temp_left)+8)
+	insert_line_string( ln, "@temp_left@do")
+	search_forward()
+}
+
+macro insert_while()
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
+	ln = sel.lnFirst
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		temp_left = create_blank_string(sel.ichFirst)
+		insert_line_string( ln,temp_left)
+		SetWndSel(hwnd,sel)
+	}
+	val = expand_brace_large()
+	temp_left = val.temp_left
+	insert_line_string( ln, "@temp_left@while ( # )")
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		PutBufLine(hbuf,ln+2, "@temp_left@    #")
+	}
+	SetBufIns (hbuf, ln, strlen(temp_left)+7)
+	search_forward()
+}
+
+macro insert_for()
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
+	ln = sel.lnFirst
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		temp_left = create_blank_string(sel.ichFirst)
+		insert_line_string( ln,temp_left)
+		SetWndSel(hwnd,sel)
+	}
+	val = expand_brace_large()
+	temp_left = val.temp_left
+	insert_line_string( ln,"@temp_left@for ( # ; # ; # )")
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		PutBufLine(hbuf,ln+2, "@temp_left@    #")
+	}
+	sel.lnFirst = ln
+	sel.lnLast = ln
+	sel.ichFirst = 0
+	sel.ichLim = 0
+	SetWndSel(hwnd, sel)
+	search_forward()
+	curr_value = ask("请输入循环变量")
+	PutBufLine(hbuf,ln, "@temp_left@for ( @curr_value@ = # ; @curr_value@ # ; @curr_value@++ )")
+	search_forward()
+}
+
+macro insert_if()
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
+	ln = sel.lnFirst
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		temp_left = create_blank_string(sel.ichFirst)
+		insert_line_string( ln,temp_left)
+		SetWndSel(hwnd,sel)
+	}
+	val = expand_brace_large()
+	temp_left = val.temp_left
+	insert_line_string( ln, "@temp_left@if ( # )")
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		PutBufLine(hbuf, ln+2, "@temp_left@    #")
+	}
+
+	search_forward()
+}
+
+macro insert_else()
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
+	line_num = get_curr_slect_line_num()
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		temp_left = create_blank_string(sel.ichFirst)
+		insert_line_string( line_num, temp_left)
+		SetWndSel(hwnd,sel)
+	}
+	val = expand_brace_large()
+	temp_left = val.temp_left
+	insert_line_string( line_num, "@temp_left@else")
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		PutBufLine(hbuf, line_num+2, "@temp_left@    ")
+		SetBufIns (hbuf, line_num+2, strlen(temp_left)+4)
+		return
+	}
+	SetBufIns (hbuf, line_num, strlen(temp_left)+7)
+}
+
+macro insert_case()
+{
+	hwnd = GetCurrentWnd()
+	hbuf = GetCurrentBuf()
+	line_num = get_curr_slect_line_num()
+	retract_line = GetBufLine( hbuf, line_num )
+	nLeft = get_left_blank(retract_line)
+	temp_left = strmid(retract_line, 0, nLeft);
+	insert_line_string( line_num, "@temp_left@" # "case # :")
+	insert_line_string( line_num + 1, "@temp_left@" # "    " # "#")
+	insert_line_string( line_num + 2, "@temp_left@" # "    " # "break;")
+	search_forward()
+}
+
+macro insert_switch()
+{
+	hwnd = GetCurrentWnd()
+	hbuf = GetCurrentBuf()
+	line_num = get_curr_slect_line_num()
+	retract_line = GetBufLine( hbuf, line_num )
+	nLeft = get_left_blank(retract_line)
+	temp_left = strmid(retract_line, 0, nLeft);
+	insert_line_string( line_num, "@temp_left@switch ( # )")
+	insert_line_string( line_num + 1, "@temp_left@" # "{")
+	nSwitch = ask("请输入case的个数")
+	insert_multi_case_proc(hbuf,temp_left,nSwitch)
+	search_forward()
+}
+
+macro insert_multi_case_proc(hbuf,temp_left,nSwitch)
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	line_num = get_curr_slect_line_num()
+
+	nIdx = 0
+	if(nSwitch == 0)
+	{
+		hNewBuf = newbuf("clip")
+		if(hNewBuf == hNil)
+			return
+		SetCurrentBuf(hNewBuf)
+		PasteBufLine (hNewBuf, 0)
+		nLeftMax = 0
+		lnMax = GetBufLineCount(hNewBuf )
+		i = 0
+		fIsEnd = 1
+		while ( i < lnMax)
+		{
+			retract_line = GetBufLine(hNewBuf , i)
+			//先去掉代码中注释的内容
+			RetVal = skip_comment_from_string(retract_line,fIsEnd)
+			retract_line = RetVal.content_str
+			fIsEnd = RetVal.fIsEnd
+			//nLeft = get_left_blank(retract_line)
+			//从剪贴板中取得case值
+			retract_line = get_switch_var(retract_line)
+			if(strlen(retract_line) != 0 )
+			{
+				line_num = line_num + 3
+				insert_line_string( line_num - 1, "@temp_left@    " # "case @retract_line@:")
+				insert_line_string( line_num    , "@temp_left@    " # "    " # "#")
+				insert_line_string( line_num + 1, "@temp_left@    " # "    " # "break;")
+			}
+			i = i + 1
+		}
+		closebuf(hNewBuf)
+	}
+	else
+	{
+		while(nIdx < nSwitch)
+		{
+			line_num = line_num + 3
+			insert_line_string( line_num - 1, "@temp_left@    " # "case # :")
+			insert_line_string( line_num    , "@temp_left@    " # "    " # "#")
+			insert_line_string( line_num + 1, "@temp_left@    " # "    " # "break;")
+			nIdx = nIdx + 1
+		}
+	}
+	insert_line_string( line_num + 2, "@temp_left@    " # "default:")
+	insert_line_string( line_num + 3, "@temp_left@    " # "    " # "#")
+	insert_line_string( line_num + 4, "@temp_left@" # "}")
+	SetWndSel(hwnd, sel)
+	search_forward()
+}
+
 macro get_switch_var(retract_line)
 {
 	if( (retract_line == "{") || (retract_line == "}") )
@@ -3887,284 +4097,18 @@ macro comment_cvt_line(lnCurrent, isCommentEnd)
 	return fIsEnd
 }
 
-macro insert_do_while()
-{
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	ln = sel.lnFirst
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-		insert_line_string( ln, temp_left)
-		SetWndSel(hwnd,sel)
-	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		PutBufLine(hbuf,ln+1, "@temp_left@    #")
-	}
-	PutBufLine(hbuf, sel.lnLast + val.nLineCount, "@temp_left@}while ( # );")
-	//SetBufIns (hbuf, sel.lnLast + val.nLineCount, strlen(temp_left)+8)
-	insert_line_string( ln, "@temp_left@do")
-	search_forward()
-}
-
-macro insert_while()
-{
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	ln = sel.lnFirst
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-		insert_line_string( ln,temp_left)
-		SetWndSel(hwnd,sel)
-	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	insert_line_string( ln, "@temp_left@while ( # )")
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		PutBufLine(hbuf,ln+2, "@temp_left@    #")
-	}
-	SetBufIns (hbuf, ln, strlen(temp_left)+7)
-	search_forward()
-}
-
-macro insert_for()
-{
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	ln = sel.lnFirst
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-		insert_line_string( ln,temp_left)
-		SetWndSel(hwnd,sel)
-	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	insert_line_string( ln,"@temp_left@for ( # ; # ; # )")
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		PutBufLine(hbuf,ln+2, "@temp_left@    #")
-	}
-	sel.lnFirst = ln
-	sel.lnLast = ln
-	sel.ichFirst = 0
-	sel.ichLim = 0
-	SetWndSel(hwnd, sel)
-	search_forward()
-	curr_value = ask("请输入循环变量")
-	PutBufLine(hbuf,ln, "@temp_left@for ( @curr_value@ = # ; @curr_value@ # ; @curr_value@++ )")
-	search_forward()
-}
-
-macro insert_if()
-{
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	ln = sel.lnFirst
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-		insert_line_string( ln,temp_left)
-		SetWndSel(hwnd,sel)
-	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	insert_line_string( ln, "@temp_left@if ( # )")
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		PutBufLine(hbuf, ln+2, "@temp_left@    #")
-	}
-
-	search_forward()
-}
-
-macro insert_else()
-{
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	line_num = get_curr_slect_line_num()
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-		insert_line_string( line_num, temp_left)
-		SetWndSel(hwnd,sel)
-	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	insert_line_string( line_num, "@temp_left@else")
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		PutBufLine(hbuf, line_num+2, "@temp_left@    ")
-		SetBufIns (hbuf, line_num+2, strlen(temp_left)+4)
-		return
-	}
-	SetBufIns (hbuf, line_num, strlen(temp_left)+7)
-}
-
-macro insert_case()
-{
-	hwnd = GetCurrentWnd()
-	hbuf = GetCurrentBuf()
-	line_num = get_curr_slect_line_num()
-	retract_line = GetBufLine( hbuf, line_num )
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line, 0, nLeft);
-	insert_line_string( line_num, "@temp_left@" # "case # :")
-	insert_line_string( line_num + 1, "@temp_left@" # "    " # "#")
-	insert_line_string( line_num + 2, "@temp_left@" # "    " # "break;")
-	search_forward()
-}
-
-macro insert_switch()
-{
-	hwnd = GetCurrentWnd()
-	hbuf = GetCurrentBuf()
-	line_num = get_curr_slect_line_num()
-	retract_line = GetBufLine( hbuf, line_num )
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line, 0, nLeft);
-	insert_line_string( line_num, "@temp_left@switch ( # )")
-	insert_line_string( line_num + 1, "@temp_left@" # "{")
-	nSwitch = ask("请输入case的个数")
-	insert_multi_case_proc(hbuf,temp_left,nSwitch)
-	search_forward()
-}
-
-macro insert_multi_case_proc(hbuf,temp_left,nSwitch)
-{
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	line_num = get_curr_slect_line_num()
-
-	nIdx = 0
-	if(nSwitch == 0)
-	{
-		hNewBuf = newbuf("clip")
-		if(hNewBuf == hNil)
-			return
-		SetCurrentBuf(hNewBuf)
-		PasteBufLine (hNewBuf, 0)
-		nLeftMax = 0
-		lnMax = GetBufLineCount(hNewBuf )
-		i = 0
-		fIsEnd = 1
-		while ( i < lnMax)
-		{
-			retract_line = GetBufLine(hNewBuf , i)
-			//先去掉代码中注释的内容
-			RetVal = skip_comment_from_string(retract_line,fIsEnd)
-			retract_line = RetVal.content_str
-			fIsEnd = RetVal.fIsEnd
-			//nLeft = get_left_blank(retract_line)
-			//从剪贴板中取得case值
-			retract_line = get_switch_var(retract_line)
-			if(strlen(retract_line) != 0 )
-			{
-				line_num = line_num + 3
-				insert_line_string( line_num - 1, "@temp_left@    " # "case @retract_line@:")
-				insert_line_string( line_num    , "@temp_left@    " # "    " # "#")
-				insert_line_string( line_num + 1, "@temp_left@    " # "    " # "break;")
-			}
-			i = i + 1
-		}
-		closebuf(hNewBuf)
-	}
-	else
-	{
-		while(nIdx < nSwitch)
-		{
-			line_num = line_num + 3
-			insert_line_string( line_num - 1, "@temp_left@    " # "case # :")
-			insert_line_string( line_num    , "@temp_left@    " # "    " # "#")
-			insert_line_string( line_num + 1, "@temp_left@    " # "    " # "break;")
-			nIdx = nIdx + 1
-		}
-	}
-	insert_line_string( line_num + 2, "@temp_left@    " # "default:")
-	insert_line_string( line_num + 3, "@temp_left@    " # "    " # "#")
-	insert_line_string( line_num + 4, "@temp_left@" # "}")
-	SetWndSel(hwnd, sel)
-	search_forward()
-}
-
 macro insert_ifdef()
 {
 	temp_str = Ask("Enter #ifdef condition:")
-	if (strlen(temp_str) == 0)
-		stop
-	hwnd = GetCurrentWnd()
-	lnFirst = GetWndSelLnFirst(hwnd)
-	lnLast = GetWndSelLnLast(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
-	if(lnMax != 0)
-	{
-		retract_line = GetBufLine( hbuf, lnFirst )
-	}
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line,0,nLeft);
-
-	hbuf = GetCurrentBuf()
-	if(lnLast + 1 < lnMax)
-	{
-		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
-	}
-	else if(lnLast + 1 == lnMax)
-	{
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
-	}
-	insert_line_string( lnFirst, "@temp_left@#ifdef @temp_str@")
-	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
+	if (temp_str != "")
+		if_define_string(temp_str)
 }
 
 macro insert_ifndef()
 {
 	temp_str = Ask("Enter #ifndef condition:")
-	if (strlen(temp_str) == 0)
-		stop
-	hwnd = GetCurrentWnd()
-	lnFirst = GetWndSelLnFirst(hwnd)
-	lnLast = GetWndSelLnLast(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
-	if(lnMax != 0)
-	{
-		retract_line = GetBufLine( hbuf, lnFirst )
-	}
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line,0,nLeft);
-
-	hbuf = GetCurrentBuf()
-	if(lnLast + 1 < lnMax)
-	{
-		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
-	}
-	else if(lnLast + 1 == lnMax)
-	{
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
-	}
-	insert_line_string( lnFirst, "@temp_left@#ifndef @temp_str@")
-	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
+	if (temp_str != "")
+		if_undefine_string(temp_str)
 }
 
 macro insert_cplusplus(hbuf, ln)
@@ -4359,6 +4303,71 @@ macro insert_revise_modify()
 		AppendBufLine(hbuf, "@temp_left@/* END:   Modified by @author_name@, @date_str@ */");
 	}
 	SetBufIns(hbuf,sel.lnFirst + 1,strlen(temp_left))
+}
+
+// Wrap ifdef <temp_str> .. endif around the current selection
+macro if_define_string(temp_str)
+{
+	hwnd = GetCurrentWnd()
+	lnFirst = GetWndSelLnFirst(hwnd)
+	lnLast = GetWndSelLnLast(hwnd)
+	hbuf = GetCurrentBuf()
+	lnMax = GetBufLineCount(hbuf)
+	if(lnMax != 0)
+	{
+		retract_line = GetBufLine( hbuf, lnFirst )
+	}
+	nLeft = get_left_blank(retract_line)
+	temp_left = strmid(retract_line,0,nLeft);
+
+	hbuf = GetCurrentBuf()
+	if(lnLast + 1 < lnMax)
+	{
+		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
+	}
+	else if(lnLast + 1 == lnMax)
+	{
+		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+	}
+	else
+	{
+		AppendBufLine(hbuf, "")
+		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+	}
+	insert_line_string( lnFirst, "@temp_left@#ifdef @temp_str@")
+	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
+}
+
+macro if_undefine_string(temp_str)
+{
+	hwnd = GetCurrentWnd()
+	lnFirst = GetWndSelLnFirst(hwnd)
+	lnLast = GetWndSelLnLast(hwnd)
+	hbuf = GetCurrentBuf()
+	lnMax = GetBufLineCount(hbuf)
+	if(lnMax != 0)
+	{
+		retract_line = GetBufLine( hbuf, lnFirst )
+	}
+	nLeft = get_left_blank(retract_line)
+	temp_left = strmid(retract_line,0,nLeft);
+
+	hbuf = GetCurrentBuf()
+	if(lnLast + 1 < lnMax)
+	{
+		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
+	}
+	else if(lnLast + 1 == lnMax)
+	{
+		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+	}
+	else
+	{
+		AppendBufLine(hbuf, "")
+		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+	}
+	insert_line_string( lnFirst, "@temp_left@#ifndef @temp_str@")
+	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
 }
 
 macro insert_pre_def_if()
