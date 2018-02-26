@@ -45,12 +45,14 @@ macro cfg_language()
 
 	if(value != 1)
 	{
-		msg("Current language=\"@value@\" is Chinese. Do you want to change language?")
+		language_str = "Chinese")
 	}
 	else
 	{
-		msg("Current language=\"@value@\" is English. Do you want to change language?")
+		language_str = "English"
 	}
+
+	msg("Current language=\"@value@\" is @language_str@. Do you want to change language?")
 
 	set_value = Ask("Enter the value to set language. Chinese:\"0\"; Englisg:\"1\"")
 
@@ -170,29 +172,47 @@ macro get_curr_autor_name()
 */
 macro get_system_time()
 {
-	data=""
-	data=GetSysTime(1)
-	//msg("GetSysTime(1)=@data@")
-	if(strlen(data.date) == 0)
+	data = nil
+	data = GetSysTime(1)
+	is_english = test_language_is_english()
+	if(False == is_english)
 	{
-		setreg(Year,"2018")
-		setreg(Month,"01")
-		setreg(Day,"20")
-		data.Year="2018"
-		data.month="01"
-		data.day="20"
-		data.Date="2018年01月20日"
-		Msg("无法获取系统时间！默认设置时间为 SysTime=@SysTime@")
+		year_unit = "年"
+		month_unit = "月"
+		day_unit = "日"
+		msg_str = "无法获取系统时间！默认设置时间为 @data@"
 	}
 	else
 	{
-	    setreg(Year, data.Year)
+		separate = "/"
+		year_unit = separate
+		month_unit = separate
+		day_unit = ""
+		msg_str = "Can't get the system time！The default time is @data@"
+	}
+	if(strlen(data.date) == 0)
+	{
+		year= "2018"
+		month = "01"
+		day= "18"
+		setreg(Year, year)
+		setreg(Month, month)
+		setreg(Day, day)
+		data.Year= month
+		data.Month = month
+		data.Day = day
+		data.Date = "@year@" # "@year_unit@" # "@month@" # "@month_unit@" # "@day@" # "@day_unit@"
+		Msg(msg_str)
+	}
+	else
+	{
+		setreg(Year, data.Year)
 		setreg(Month, data.Month)
 		setreg(Day, data.Day)
 		setreg(Date, data.date)
-		data.Month=getreg(Month)
-		data.Day=getreg(Day)
-		data.Date=getreg(Date)
+		data.Month = getreg(Month)
+		data.Day = getreg(Day)
+		data.Date = getreg(Date)
 	}
 	
 	is_english = test_language_is_english()
@@ -209,11 +229,11 @@ macro get_system_time()
 		month_unit = separate
 		day_unit = ""
 	}
-	data.Date=cat(data.Year, year_unit)
-	data.Date=cat(data.Date, data.Month)
-	data.Date=cat(data.Date, month_unit)
-	data.Date=cat(data.Date, data.Day)
-	data.Date=cat(data.Date, day_unit)
+	data.Date = cat(data.Year, year_unit)
+	data.Date = cat(data.Date, data.Month)
+	data.Date = cat(data.Date, month_unit)
+	data.Date = cat(data.Date, data.Day)
+	data.Date = cat(data.Date, day_unit)
 
 	return data
 }
@@ -432,7 +452,7 @@ macro get_curr_line_str()
 		stop
 	line_num = get_curr_slect_line_num()
 	line_str = GetBufLine(handle, line_num)
-	msg("get_curr_line_str() :: handle=[@handle@]  line_num=[@line_num@]  line_str=[@line_str@]")
+	//msg("get_curr_line_str() :: handle=|@handle@|  line_num=|@line_num@|   line_str=|@line_str@|")
 	return line_str
 }
 
@@ -442,25 +462,13 @@ macro get_curr_line_str()
 macro get_pretty_code_left_format()
 {
 	hwnd = GetCurrentWnd()
-	if (hwnd == 0)
+	if (hwnd == hNil)
+	{
+		msg("[warnning] (hwnd == hNil = @hwnd@) stop!")
 		stop
+	}
 
-	line_num = get_curr_slect_line_num()
-	//msg("get_pretty_code_left_format() :: line_num=@line_num@")
-	sel = GetWndSel(hwnd)
-	//msg("get_pretty_code_left_format() :: sel=[@sel@]")
-
-	if (sel.ichFirst == 0)
-		stop
-	
-	hbuf = GetWndBuf(hwnd)
-	ln = sel.lnFirst; //当前所在行
-	// get line the selection (insertion point) is on
 	line_str = get_curr_line_str()
-	//msg("get_pretty_code_left_format() :: line_str= GetBufLine(hbuf=@hbuf@, sel.lnFirst=@ln@) = [@line_str@]")
-	
-	
-	//msg("get_pretty_code_left_format() :: ln = sel.lnFirst = [@ln@]  sel = [@sel@]")
 	chTab = CharFromAscii(9)
 	chSpace = CharFromAscii(32);
 	// prepare a new indented blank line to be inserted.
@@ -501,27 +509,76 @@ macro get_pretty_code_left_format()
 	data.retract = strmid(line_str, 0, ich) # retract       //缩进行
 	data.space_num = space_num                              //空格数量
 	data.tab_num = tab_num                                  //tab数量
-	msg("get_pretty_code_left_format() :: line_str=[@line_str@];  data={@data@}")
+	//msg("data=|@data@| line_str=|@line_str@|")
 	return data
 }
 
-
-macro get_question_str()
+/*
+获取修改目信息内容
+*/
+macro get_revise_info(id_str, is_begin)
 {
-	ret_str = ""
-	question_v = GetReg ("PNO")
-	if(strlen(question_v)>0)
+	temp_str = "END  "
+	question_str = nil
+	if(True == is_begin)
+	{
+		question_str = get_problem_number_str()
+		temp_str = "BEGIN"
+	}
+	
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	action = get_revise_action_str(id_str)
+	author_name = get_curr_autor_name()
+	date_str = get_system_time_date()
+	str = "@alignment@/* @temp_str@: @action@ by @author_name@, @date_str@ @question_str@*/"
+	return str
+}
+
+/*
+获取修改目的意图操作字符串
+*/
+macro get_revise_action_str(id_str)
+{
+	ret_str = nil
+	if (id_str == "add")
+	{
+		ret_str = "Added"
+	}
+	else if (id_str == "delete")
+	{
+		ret_str = "Deleted"
+	}
+	else if (id_str == "modify")
+	{
+		ret_str = "Modified"
+	}
+	return ret_str
+}
+
+macro get_problem_number()
+{
+	problem_id = Nil           //"" – the empty string.
+	problem_id = GetReg ("PNO")
+	return problem_id
+}
+
+macro get_problem_number_str()
+{
+	ret_str = Nil
+	problem_id = GetReg ("PNO")
+	if(strlen(problem_id)>0)
 	{
 		is_english = test_language_is_english()
 		if(True == is_english)
 		{
-			problem_str = "Problem NO."
+			hint_str = "Problem NO."
 		}
 		else
 		{
-			problem_str = "问题单号"
+			hint_str = "问题单号"
 		}
-		ret_str = "   @problem_str@ : @question_v@"
+		ret_str = "   @hint_str@ : @problem_id@"
 	}
 	return ret_str
 }
@@ -533,17 +590,26 @@ macro clear_promble_number()
 
 macro add_promble_number()
 {
-	question_v = ASK("Please Input problem number ");
-	if(question_v == "#")
+	problem_id = ASK("Please Input problem number ");
+	if(problem_id == "#")
 	{
-		question_v = ""
+		problem_id = ""
 		SetReg ("PNO", "")
 	}
 	else
 	{
-		SetReg ("PNO", question_v)
+		SetReg ("PNO", problem_id)
 	}
-	return question_v
+	return problem_id
+}
+
+/*
+删除指定行
+*/
+macro delect_line(line_num)
+{
+	hbuf = get_curr_window_buffer_handle()
+	DelBufLine(hbuf, line_num)
 }
 
 /*
@@ -662,6 +728,9 @@ macro insert_do_while()
 	insert_line_string( line_num, "@alignment@do")
 	
 	search_forward()
+
+	last_line = line_num+3
+	return last_line
 }
 
 macro insert_while()
@@ -673,21 +742,25 @@ macro insert_while()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
 	
-	ln = sel.lnFirst
+	line_num = sel.lnFirst
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		insert_line_string(ln, alignment)
+		insert_line_string(line_num, alignment)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
+	
 	temp_left = val.temp_left
-	insert_line_string( ln, "@alignment@while ( # )")
+	insert_line_string( line_num, "@alignment@while ( # )")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		PutBufLine(hbuf, ln+2, "@retract@#")
+		PutBufLine(hbuf, line_num+2, "@retract@#")
 	}
-	SetBufIns (hbuf, ln, strlen(temp_left)+7)
+	SetBufIns (hbuf, line_num, strlen(temp_left)+7)
 	search_forward()
+	
+	last_line = line_num+3
+	return last_line
 }
 
 macro insert_for()
@@ -699,28 +772,39 @@ macro insert_for()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
 	
-	ln = sel.lnFirst
+	line_num = sel.lnFirst
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		insert_line_string( ln, alignment)
+		insert_line_string( line_num, alignment)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
 	temp_left = val.temp_left
-	insert_line_string(ln, "@alignment@for ( # ; # ; # )")
+	insert_line_string(line_num, "@alignment@for ( # ; # ; # )")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		PutBufLine(hbuf, ln+2, "@retract@#")
+		PutBufLine(hbuf, line_num+2, "@retract@#")
 	}
-	sel.lnFirst = ln
-	sel.lnLast = ln
+	sel.lnFirst = line_num
+	sel.lnLast = line_num
 	sel.ichFirst = 0
 	sel.ichLim = 0
 	SetWndSel(hwnd, sel)
 	search_forward()
-	curr_value = ask("请输入循环变量")
-	PutBufLine(hbuf,ln, "@temp_left@for ( @curr_value@ = # ; @curr_value@ # ; @curr_value@++ )")
+	if(True == test_language_is_english())
+	{
+		input_loop_variable_msg = "Please input loop variable."
+	}
+	else
+	{
+		input_loop_variable_msg = "请输入循环变量"
+	}
+	curr_value = ask(input_loop_variable_msg)
+	PutBufLine(hbuf,line_num, "@temp_left@for ( @curr_value@ = # ; @curr_value@ # ; @curr_value@++ )")
 	search_forward()
+
+	last_line = line_num+3
+	return last_line
 }
 
 macro insert_if()
@@ -732,21 +816,23 @@ macro insert_if()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
 	
-	ln = sel.lnFirst
+	line_num = sel.lnFirst
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		insert_line_string( ln, alignment)
+		insert_line_string( line_num, alignment)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
 	temp_left = val.temp_left
-	insert_line_string( ln, "@alignment@if ( # )")
+	insert_line_string( line_num, "@alignment@if ( # )")
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		PutBufLine(hbuf, ln+2, "@retract@#")
+		PutBufLine(hbuf, line_num+2, "@retract@#")
 	}
 
 	search_forward()
+	last_line = line_num+3
+	return last_line
 }
 
 macro insert_else()
@@ -761,8 +847,7 @@ macro insert_else()
 	
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
-		temp_left = create_blank_string(sel.ichFirst)
-		insert_line_string( line_num, temp_left)
+		insert_line_string( line_num, alignment)
 		SetWndSel(hwnd,sel)
 	}
 	val = expand_brace_large()
@@ -771,10 +856,71 @@ macro insert_else()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		PutBufLine(hbuf, line_num+2, "@retract@")
-		SetBufIns (hbuf, line_num+2, strlen(temp_left)+4)
-		return
+		SetBufIns (hbuf, line_num+2, strlen(alignment)+4)
+		last_line = line_num+3
+		return last_line
 	}
 	SetBufIns (hbuf, line_num, strlen(temp_left)+7)
+	last_line = line_num+2
+	return last_line
+}
+
+macro insert_else_if()
+{
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
+	hbuf = get_curr_window_buffer_handle()
+	line_num = get_curr_slect_line_num()
+	PutBufLine(hbuf, line_num, alignment # "else if ( # )")
+	insert_line_string( line_num + 1, "@alignment@" # "{")
+	insert_line_string( line_num + 2, "@retract@" # "#")
+	insert_line_string( line_num + 3, "@alignment@" # "}")
+	last_line = line_num + 3
+	return last_line
+}
+
+macro insert_if_else()
+{
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
+	hbuf = get_curr_window_buffer_handle()
+	line_num = get_curr_slect_line_num()
+	PutBufLine(hbuf, line_num, alignment # "if ( # )")
+	insert_line_string( line_num + 1, "@alignment@" # "{")
+	insert_line_string( line_num + 2, "@retract@" # "#")
+	insert_line_string( line_num + 3, "@alignment@" # "}")
+	insert_line_string( line_num + 4, "@alignment@" # "else")
+	insert_line_string( line_num + 5, "@alignment@" # "{")
+	insert_line_string( line_num + 6, "@retract@" # ";")
+	insert_line_string( line_num + 7, "@alignment@" # "}")
+	last_line = line_num + 8
+	return last_line
+}
+
+macro insert_if_elseif_else()
+{
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
+	hbuf = get_curr_window_buffer_handle()
+	line_num = get_curr_slect_line_num()
+	hbuf = get_curr_window_buffer_handle()
+	PutBufLine(hbuf, line_num, alignment # "if ( # )")
+	insert_line_string( line_num + 1, "@alignment@" # "{")
+	insert_line_string( line_num + 2, "@retract@" # "#")
+	insert_line_string( line_num + 3, "@alignment@" # "}")
+	insert_line_string( line_num + 4, "@alignment@" # "else if ( # )")
+	insert_line_string( line_num + 5, "@alignment@" # "{")
+	insert_line_string( line_num + 6, "@retract@" # ";")
+	insert_line_string( line_num + 7, "@alignment@" # "}")
+	insert_line_string( line_num + 8, "@alignment@" # "else")
+	insert_line_string( line_num + 9, "@alignment@" # "{")
+	insert_line_string( line_num + 10, "@retract@" # ";")
+	insert_line_string( line_num + 11, "@alignment@" # "}")
+	last_line = line_num + 12
+	return last_line
 }
 
 macro insert_case()
@@ -783,38 +929,105 @@ macro insert_case()
 	pretty_format = get_pretty_code_left_format()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
-	insert_line_string( line_num, "@alignment@" # "case # :")
+	insert_line_string( line_num + 0, "@alignment@" # "case # :")
 	insert_line_string( line_num + 1, "@retract@" # "#")
 	insert_line_string( line_num + 2, "@retract@" # "break;")
 	search_forward()
+	last_line = line_num + 2
+	return last_line
 }
 
 macro insert_switch()
 {
+	hwnd = GetCurrentWnd()
 	hbuf = GetCurrentBuf()
+	save_selct = get_curr_window_slect()
 	line_num = get_curr_slect_line_num()
 	pretty_format = get_pretty_code_left_format()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
 	insert_line_string( line_num, "@alignment@switch ( # )")
 	insert_line_string( line_num + 1, "@alignment@" # "{")
-	case_num = ask("请输入case的个数")
-	insert_multi_case_proc(hbuf, alignment, case_num)
+	if(True == test_language_is_english())
+	{
+		input_case_num_msg = "Please input the number of case. Automatic detection input 'a','A','0'or'#'."
+	}
+	else
+	{
+		input_case_num_msg = "请输入case的个数，根据粘帖板自动生成则输入‘a’或者‘0’或者‘#’。"
+	}
+	case_num = ask(input_case_num_msg)
+	
+	SetWndSel(hwnd, save_selct)
+	last_line = insert_multi_case_proc(hbuf, alignment, retract, case_num)
+	
 	search_forward()
+	return last_line
 }
 
-macro insert_multi_case_proc(hbuf, temp_left, nSwitch)
+macro insert_enum()
 {
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
 	line_num = get_curr_slect_line_num()
 	pretty_format = get_pretty_code_left_format()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
-	
-	nIdx = 0
-	if(nSwitch == 0)
+
+	if(True == test_language_is_english())
 	{
+		input_enum_name_msg = "Please input enum name."
+	}
+	else
+	{
+		input_enum_name_msg = "请输入枚举名"
+	}
+	struct_name = toupper(Ask(input_enum_name_msg))
+	insert_line_string( line_num, "@alignment@typedef enum @struct_name@")
+	insert_line_string( line_num + 1, "@alignment@{");
+	insert_line_string( line_num + 2, "@retract@");
+	struct_name = cat(struct_name, "_ENUM")
+	insert_line_string( line_num + 3, "@alignment@}@struct_name@;")
+	SetBufIns (hbuf, line_num + 2, strlen(retract))
+	last_line = line_num + 3
+	return last_line
+}
+
+macro insert_struct()
+{
+	hbuf = GetCurrentBuf()
+	line_num = get_curr_slect_line_num()
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
+	if(True == test_language_is_english())
+	{
+		input_struct_name_msg = "Please input struct name."
+	}
+	else
+	{
+		input_struct_name_msg = "请输入结构名称"
+	}
+	struct_name = toupper(Ask(input_struct_name_msg))
+	insert_line_string( line_num, "@alignment@typedef struct @struct_name@")
+	insert_line_string( line_num + 1, "@alignment@{");
+	insert_line_string( line_num + 2, "@retract@");
+	struct_name = cat(struct_name,"_STRU")
+	insert_line_string( line_num + 3, "@alignment@}@struct_name@;")
+	SetBufIns (hbuf, line_num + 2, strlen(retract))
+	last_line = line_num + 3
+	return last_line
+}
+
+macro insert_multi_case_proc(hbuf, alignment, retract, nSwitch)
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	line_num = get_curr_slect_line_num()
+	nIdx = 0
+	
+	if((nSwitch == 0) || (nSwitch == "a") || (nSwitch == "A") || (nSwitch == "#"))
+	{
+		//根据粘贴板自动生成相应的数量case
 		hNewBuf = newbuf("clip")
 		if(hNewBuf == hNil)
 			return
@@ -826,18 +1039,18 @@ macro insert_multi_case_proc(hbuf, temp_left, nSwitch)
 		fIsEnd = 1
 		while ( i < lnMax)
 		{
-			retract_line = GetBufLine(hNewBuf , i)
+			line_str = GetBufLine(hNewBuf , i)
 			//先去掉代码中注释的内容
-			RetVal = skip_comment_from_string(retract_line,fIsEnd)
-			retract_line = RetVal.content_str
+			RetVal = skip_comment_from_string(line_str, fIsEnd)
+			line_str = RetVal.content_str
 			fIsEnd = RetVal.fIsEnd
-			//nLeft = get_left_blank(retract_line)
 			//从剪贴板中取得case值
-			retract_line = get_switch_var(retract_line)
-			if(strlen(retract_line) != 0 )
+			case_id_str = get_switch_var(line_str)
+			if(strlen(line_str) != 0 )
 			{
+				SetCurrentBuf(hbuf)
 				line_num = line_num + 3
-				insert_line_string( line_num - 1, "@alignment@" # "case @retract_line@:")
+				insert_line_string( line_num - 1, "@alignment@" # "case @case_id_str@ :")
 				insert_line_string( line_num,     "@retract@" #        "#")
 				insert_line_string( line_num + 1, "@retract@" #        "break;")
 			}
@@ -858,9 +1071,11 @@ macro insert_multi_case_proc(hbuf, temp_left, nSwitch)
 	}
 	insert_line_string( line_num + 2, "@alignment@" # "default:")
 	insert_line_string( line_num + 3, "@retract@" #        "#")
-	insert_line_string( line_num + 4, "@retract@" # "}")
+	insert_line_string( line_num + 4, "@alignment@" # "}")
 	SetWndSel(hwnd, sel)
 	search_forward()
+	last_line = line_num + 4
+	return last_line
 }
 
 macro insert_ifdef()
@@ -869,33 +1084,32 @@ macro insert_ifdef()
 	if (strlen(temp_str) == 0)
 		stop
 	hwnd = GetCurrentWnd()
-	lnFirst = GetWndSelLnFirst(hwnd)
+	line_num = get_curr_slect_line_num()
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
+	
 	lnLast = GetWndSelLnLast(hwnd)
 	hbuf = GetCurrentBuf()
 	lnMax = GetBufLineCount(hbuf)
-	if(lnMax != 0)
-	{
-		retract_line = GetBufLine( hbuf, lnFirst )
-	}
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line,0,nLeft);
-
-	hbuf = GetCurrentBuf()
 	if(lnLast + 1 < lnMax)
 	{
-		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
+		insert_line_string( line_num+1, "@retract@#")
+		insert_line_string( line_num+2, "@alignment@#endif /* @temp_str@ */")
 	}
 	else if(lnLast + 1 == lnMax)
 	{
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
 	}
 	else
 	{
 		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
 	}
-	insert_line_string( lnFirst, "@temp_left@#ifdef @temp_str@")
-	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
+	insert_line_string( line_num, "@alignment@#ifdef @temp_str@")
+	SetBufIns(hbuf, line_num + 1, strlen(alignment))
+	last_line = line_num
+	return last_line
 }
 
 macro insert_ifndef()
@@ -904,46 +1118,44 @@ macro insert_ifndef()
 	if (strlen(temp_str) == 0)
 		stop
 	hwnd = GetCurrentWnd()
-	lnFirst = GetWndSelLnFirst(hwnd)
+	line_num = get_curr_slect_line_num()
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
 	lnLast = GetWndSelLnLast(hwnd)
 	hbuf = GetCurrentBuf()
 	lnMax = GetBufLineCount(hbuf)
-	if(lnMax != 0)
-	{
-		retract_line = GetBufLine( hbuf, lnFirst )
-	}
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line,0,nLeft);
-
-	hbuf = GetCurrentBuf()
 	if(lnLast + 1 < lnMax)
 	{
-		insert_line_string( lnLast+1, "@temp_left@#endif /* @temp_str@ */")
+		insert_line_string( line_num+1, "@retract@#")
+		insert_line_string( line_num+2, "@alignment@#endif /* @temp_str@ */")
 	}
 	else if(lnLast + 1 == lnMax)
 	{
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
 	}
 	else
 	{
 		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@temp_left@#endif /* @temp_str@ */")
+		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
 	}
-	insert_line_string( lnFirst, "@temp_left@#ifndef @temp_str@")
-	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
+	insert_line_string(line_num, "@alignment@#ifndef @temp_str@")
+	SetBufIns(hbuf, line_num + 1, strlen(alignment))
+	last_line = line_num
+	return last_line
 }
 
-macro insert_cplusplus(hbuf, ln)
+macro insert_cplusplus(hbuf, line_num)
 {
 	temp = get_single_line_comments_str()
-	insert_line_string( ln, "")
-	insert_line_string( ln, "@temp@")
-	insert_line_string( ln, "#endif /* __cplusplus */")
-	insert_line_string( ln, "#endif")
-	insert_line_string( ln, "extern \"C\"{")
-	insert_line_string( ln, "#if __cplusplus")
-	insert_line_string( ln, "#ifdef __cplusplus")
-	insert_line_string( ln, "@temp@")
+	insert_line_string( line_num, "")
+	insert_line_string( line_num, "@temp@")
+	insert_line_string( line_num, "#endif /* __cplusplus */")
+	insert_line_string( line_num, "#endif")
+	insert_line_string( line_num, "extern \"C\"{")
+	insert_line_string( line_num, "#if __cplusplus")
+	insert_line_string( line_num, "#ifdef __cplusplus")
+	insert_line_string( line_num, "@temp@")
 
 	line = GetBufLineCount (hbuf)
 	insert_line_string( line, "@temp@")
@@ -968,166 +1180,93 @@ macro insert_file_header_info()
 	insert_file_header(hbuf, 0, "")
 }
 
-macro insert_revise_comment_proc(hbuf, ln, commend_str, author_name, alignment_line)
+macro insert_revise_info(line_num, id_str, is_begin)
 {
+	str = get_revise_info(id_str, is_begin)
+	insert_line_string( line_num, str)
+	return line_num
+}
+
+macro insert_revise(id_str)
+{
+	hwnd = GetCurrentWnd()
+	sel = GetWndSel(hwnd)
+	hbuf = GetCurrentBuf()
+	line_sum = GetBufLineCount(hbuf)
+
+	author_name = get_curr_autor_name()
 	date_str = get_system_time_date()
-	question_str = get_question_str()
+	question_str = get_problem_number_str()
+
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	line_num = sel.lnFirst
+	insert_revise_info(line_num, id_str, True)
+
+	last_line_num = line_sum - 1
+	if(sel.lnLast < last_line_num)
+	{
+		insert_revise_info(sel.lnLast + 2, id_str, False)
+	}
+	else
+	{
+		str = get_revise_info(id_str, False)
+		AppendBufLine(hbuf, str)
+	}
 	
-	if (commend_str == "ap")
+	if(sel.lnFirst == sel.lnLast)
 	{
-		DelBufLine(hbuf, ln)
-		question_v = add_promble_number()
-		insert_line_string( ln, "@alignment_line@/* 问 题 单: @question_v@     修改人:@author_name@,   时间:@date_str@ ");
-		content_str = Ask("修改原因")
-		temp_left = cat(alignment_line,"   修改原因: ");
-		if(strlen(temp_left) > 70)
-		{
-			Msg("The right margine is small, Please use a new line")
-			stop
-		}
-		ln = comment_content(hbuf, ln + 1, temp_left, content_str, 1)
-		return
+		PutBufLine(hbuf, line_num+1, alignment)
 	}
-	else if (commend_str == "ab")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string(ln, "@alignment_line@/* BEGIN: Added by @author_name@, @date_str@ @question_str@*/");
-		return
-	}
-	else if (commend_str == "ae")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string(ln, "@alignment_line@/* END:   Added by @author_name@, @date_str@ */");
-		return
-	}
-	else if (commend_str == "db")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string(ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @date_str@ @question_str@*/")
-		return
-	}
-	else if (commend_str == "de")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string(ln, "@alignment_line@/* END: Deleted by @author_name@, @date_str@ */")
-		return
-	}
-	else if (commend_str == "mb")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string(ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @date_str@ @question_str@*/")
-		return
-	}
-	else if (commend_str == "me")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string(ln, "@alignment_line@/* END:   Modified by @author_name@, @date_str@ */")
-		return
-	}
+	SetBufIns(hbuf, line_num+1, strlen(alignment))
 }
 
 macro insert_revise_add()
 {
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
+	return insert_revise("add")
+}
 
-	author_name = get_curr_autor_name()
-	date_str = get_system_time_date()
-	question_str = get_question_str()
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-	}
-	else
-	{
-		retract_line = GetBufLine( hbuf, sel.lnFirst )
-		nLeft = get_left_blank(retract_line)
-		temp_left = strmid(retract_line,0,nLeft);
-	}
-	
-	insert_line_string( sel.lnFirst, "@temp_left@/* BEGIN: Added by @author_name@, @date_str@ @question_str@*/")
+macro insert_revise_add_begin(line_num)
+{
+	return insert_revise_info(line_num, "add", True)
+}
 
-	if(sel.lnLast < lnMax - 1)
-	{
-		insert_line_string( sel.lnLast + 2, "@temp_left@/* END:   Added by @author_name@, @date_str@ @question_str@*/")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "@temp_left@/* END:   Added by @author_name@, @date_str@ */")
-	}
-	SetBufIns(hbuf, sel.lnFirst + 1, strlen(temp_left))
+macro insert_revise_add_end(line_num)
+{
+	return insert_revise_info(line_num, "add", False)
 }
 
 macro insert_revise_del()
 {
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
-	
-	author_name = get_curr_autor_name()
-	date_str = get_system_time_date()
-	question_str = get_question_str()
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-	}
-	else
-	{
-		retract_line = GetBufLine( hbuf, sel.lnFirst )
-		nLeft = get_left_blank(retract_line)
-		temp_left = strmid(retract_line,0,nLeft);
-	}
-	insert_line_string(sel.lnFirst, "@temp_left@/* BEGIN: Deleted by @author_name@, @date_str@ @question_str@*/")
+	return insert_revise("delete")
+}
 
-	if(sel.lnLast < lnMax - 1)
-	{
-		insert_line_string(sel.lnLast + 2, "@temp_left@/* END:   Deleted by @author_name@, @date_str@ @question_str@*/")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "@temp_left@/* END:   Deleted by @author_name@, @date_str@ */");
-	}
-	SetBufIns(hbuf, sel.lnFirst + 1, strlen(temp_left))
+macro insert_revise_del_begin(line_num)
+{
+	return insert_revise_info(line_num, "delete", True)
+}
+
+macro insert_revise_del_end(line_num)
+{
+	return insert_revise_info(line_num, "delete", False)
 }
 
 macro insert_revise_modify()
 {
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
-	
-	author_name = get_curr_autor_name()
-	date_str = get_system_time_date()
-	question_str = get_question_str()
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		temp_left = create_blank_string(sel.ichFirst)
-	}
-	else
-	{
-		retract_line = GetBufLine( hbuf, sel.lnFirst )
-		nLeft = get_left_blank(retract_line)
-		temp_left = strmid(retract_line, 0, nLeft);
-	}
-
-	insert_line_string( sel.lnFirst, "@temp_left@/* BEGIN: Modified by @author_name@, @date_str@ @question_str@*/")
-
-	if(sel.lnLast < lnMax - 1)
-	{
-		insert_line_string( sel.lnLast + 2, "@temp_left@/* END:   Modified by @author_name@, @date_str@  @question_str@*/")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "@temp_left@/* END:   Modified by @author_name@, @date_str@ */");
-	}
-	SetBufIns(hbuf, sel.lnFirst + 1, strlen(temp_left))
+	return insert_revise("modify")
 }
 
-macro insert_history_content(hbuf, ln, iHostoryCount)
+macro insert_revise_modify_begin(line_num)
+{
+	return insert_revise_info(line_num, "modify", True)
+}
+
+macro insert_revise_modify_end(line_num)
+{
+	return insert_revise_info(line_num, "modify", False)
+}
+
+macro insert_history_content(hbuf, line_num, iHostoryCount)
 {
 	date_str = get_system_time_date()
 	author_name = get_curr_autor_name()
@@ -1148,45 +1287,85 @@ macro insert_history_content(hbuf, ln, iHostoryCount)
 		modification_str = "    修改内容   : "
 	}
 	
-	insert_line_string( ln, "")
-	insert_line_string( ln + 1, "  @iHostoryCount@.@data_str@: @date_str@")
+	insert_line_string( line_num, "")
+	insert_line_string( line_num + 1, "  @iHostoryCount@.@data_str@: @date_str@")
 
-	insert_line_string( ln + 2, autor_str)
+	insert_line_string( line_num + 2, autor_str)
 	content_str = Ask(msg_str)
-	comment_content(hbuf, ln + 3, modification_str, content_str, 0)
+	comment_content(hbuf, line_num + 3, modification_str, content_str, 0)
 }
 
-macro insert_histort(hbuf, ln)
+macro insert_history_info(hbuf, line_num)
 {
-	iHistoryCount = 1
-	isLastLine = ln
+	history_count = 0
+	const_value = 0xffffffff
 	i = 0
-	while(ln-i>0)
+	while(line_num-i>0)
 	{
-		curr_line = GetBufLine(hbuf, ln-i);
-		iBeg1 = string_cmp(curr_line,"日    期  ")
-		iBeg2 = string_cmp(curr_line,"Date      ")
-		if((iBeg1 != 0xffffffff) || (iBeg2 != 0xffffffff))
+		curr_line = GetBufLine(hbuf, line_num-i)
+		begin1 = string_cmp(curr_line, "日    期  ")
+		begin2 = string_cmp(curr_line, "Date      ")
+		if((begin1 != const_value) || (begin2 != const_value))
 		{
-			iHistoryCount = iHistoryCount + 1
-			i = i + 1
+			i++
+			history_count++
 			continue
 		}
-		iBeg1 = string_cmp(curr_line,"修改历史")
-		iBeg2 = string_cmp(curr_line,"History      ")
-		if((iBeg1 != 0xffffffff) || (iBeg2 != 0xffffffff))
+		begin1 = string_cmp(curr_line, "修改历史")
+		begin2 = string_cmp(curr_line, "History      ")
+		if((begin1 != const_value) || (begin2 != const_value))
 		{
 			break
 		}
-		iBeg = string_cmp(curr_line,"/**********************")
-		if( iBeg != 0xffffffff )
+		iBeg = string_cmp(curr_line, "/**********************")
+		if( iBeg != const_value )
 		{
 			break
 		}
-		i = i + 1
+		i++
 	}
 	
-	insert_history_content(hbuf, ln, iHistoryCount)
+	insert_history_content(hbuf, line_num, history_count)
+}
+
+macro insert_promble_description()
+{
+	hwnd = GetCurrentWnd()
+	line_num = get_curr_slect_line_num()
+	pretty_format = get_pretty_code_left_format()
+	alignment = pretty_format.alignment
+	retract = pretty_format.retract
+
+	author_name = get_curr_autor_name()
+	date_str = get_system_time_date()
+	question_str = get_problem_number_str()
+	
+	promble_id = add_promble_number()
+
+	if(True == test_language_is_english())
+	{
+		use_new_line_msg = "The right margine is small, Please use a new line."
+		input_description_msg = "   Description    : "
+	}
+	else
+	{
+		use_new_line_msg = "右边空间太小,请用新的行."
+		input_description_msg = "   Description    : "
+	}
+	
+	insert_line_string( line_num, "@alignment@/* Promblem Number: @promble_id@     [Author:@author_name@] [Date:@date_str@]");
+
+	content_str = Ask(input_description_msg)
+	temp_left = cat(alignment, input_description_msg);
+	if(strlen(temp_left) > 70)
+	{
+		msg(use_new_line_msg)
+		stop
+	}
+	
+	line_num = comment_content(hbuf, line_num + 1, temp_left, content_str, 1)
+	last_line = line_num+1
+	return last_line
 }
 
 macro insert_pre_def_if()
@@ -1199,10 +1378,10 @@ macro insert_pre_def_if()
 	lnMax = GetBufLineCount(hbuf)
 	if(lnMax != 0)
 	{
-		retract_line = GetBufLine( hbuf, lnFirst )
+		line_str = GetBufLine( hbuf, lnFirst )
 	}
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line,0,nLeft);
+	nLeft = get_left_blank(line_str)
+	temp_left = strmid(line_str,0,nLeft);
 
 	hbuf = GetCurrentBuf()
 	if(lnLast + 1 < lnMax)
@@ -1220,6 +1399,47 @@ macro insert_pre_def_if()
 	}
 	insert_line_string( lnFirst, "@temp_left@#if  @temp_str@")
 	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
+}
+
+macro insert_comment()
+{
+	hbuf = GetCurrentBuf()
+	line_num = get_curr_slect_line_num()
+	line_str = get_curr_line_str()
+	sel = get_curr_window_slect()
+	wordinfo = get_word_left_of_ich(sel.ichFirst, line_str)
+	if(wordinfo.ichLim > 70)
+	{
+		Msg(use_new_line_msg)
+		stop
+	}
+
+	line_len = strlen(line_str)
+	i = 0
+	while(wordinfo.ichLim + i < line_len)
+	{
+		if((line_str[wordinfo.ichLim + i] != " ")||(line_str[wordinfo.ichLim + i] != "\t")
+		{
+			msg("you must insert /* at the end of a line");
+			return
+		}
+		i = i + 1
+	}
+	
+	if(True == test_language_is_english())
+	{
+		msg_str = "Please input comment."
+	}
+	else
+	{
+		msg_str = "请输入注释的内容。"
+	}
+	
+	DelBufLine(hbuf, line_num)
+	content_str = Ask(msg_str)
+	temp_left = cat( line_str, " ")
+	comment_content(hbuf, line_num, temp_left, content_str, 1)
+	return line_num
 }
 
 /*
@@ -1376,8 +1596,8 @@ macro insert_file_list(hbuf, hnewbuf,ln)
 	isym = 0
 	while (isym < isymMax)
 	{
-		retract_line = GetBufLine(hnewbuf, isym)
-		insert_line_string(ln,"              @retract_line@")
+		line_str = GetBufLine(hnewbuf, isym)
+		insert_line_string(ln,"              @line_str@")
 		ln = ln + 1
 		isym = isym + 1
 	}
@@ -1398,22 +1618,22 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 	curr_LeftOld = ""
 	while(ln < nLineEnd)
 	{
-		retract_line = GetBufLine(hbuf, ln)
-		iCurLineLen = strlen(retract_line)
+		line_str = GetBufLine(hbuf, ln)
+		iCurLineLen = strlen(line_str)
 
 		/*剔除其中的注释语句*/
-		RetVal = skip_comment_from_string(retract_line,fIsEnd)
-		retract_line = RetVal.content_str
+		RetVal = skip_comment_from_string(line_str,fIsEnd)
+		line_str = RetVal.content_str
 		fIsEnd = RetVal.fIsEnd
 		//查找是否有return语句
 		/*
-		ret =string_cmp(retract_line,"return")
+		ret =string_cmp(line_str,"return")
 		if(ret != 0xffffffff)
 		{
-			if( (retract_line[ret+6] == " " ) || (retract_line[ret+6] == "\t" )
-				|| (retract_line[ret+6] == ";" ) || (retract_line[ret+6] == "(" ))
+			if( (line_str[ret+6] == " " ) || (line_str[ret+6] == "\t" )
+				|| (line_str[ret+6] == ";" ) || (line_str[ret+6] == "(" ))
 			{
-				curr_Pre = strmid(retract_line,0,ret)
+				curr_Pre = strmid(line_str,0,ret)
 			}
 			SetBufIns(hbuf,ln,ret)
 			Paren_Right
@@ -1421,33 +1641,33 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 			if( sel.lnLast != ln )
 			{
 				GetbufLine(hbuf,sel.lnLast)
-				RetVal = skip_comment_from_string(retract_line,1)
-				retract_line = RetVal.content_str
+				RetVal = skip_comment_from_string(line_str,1)
+				line_str = RetVal.content_str
 				fIsEnd = RetVal.fIsEnd
 			}
 		}
 		*/
 		//获得左边空白大小
-		nLeft = get_left_blank(retract_line)
+		nLeft = get_left_blank(line_str)
 		if(nLeft == 0)
 		{
 			temp_left = "    "
 		}
 		else
 		{
-			temp_left = strmid(retract_line,0,nLeft)
+			temp_left = strmid(line_str,0,nLeft)
 		}
-		retract_line = trim_string(retract_line)
-		iLen = strlen(retract_line)
+		line_str = trim_string(line_str)
+		iLen = strlen(line_str)
 		if(iLen == 0)
 		{
 			ln = ln + 1
 			continue
 		}
-		curr_Ret = get_first_word(retract_line)
+		curr_Ret = get_first_word(line_str)
 //        if( (curr_Ret == "if") || (curr_Ret == "else")
 		//查找是否有return语句
-//        ret =string_cmp(retract_line,"return")
+//        ret =string_cmp(line_str,"return")
 
 		if( curr_Ret == "return")
 		{
@@ -1474,7 +1694,7 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 		}
 		else
 		{
-			ret =string_cmp(retract_line,"}")
+			ret =string_cmp(line_str,"}")
 			if( ret != 0xffffffff )
 			{
 				fIsNeedPrt = 1
@@ -1482,9 +1702,9 @@ macro insert_trace_in_curr_function(hbuf,symbol)
 		}
 
 		curr_LeftOld = temp_left
-		ch = retract_line[iLen-1]
+		ch = line_str[iLen-1]
 		if( ( ch  == ";" ) || ( ch  == "{" )
-			 || ( ch  == ":" )|| ( ch  == "}" ) || ( retract_line[0] == "#" ))
+			 || ( ch  == ":" )|| ( ch  == "}" ) || ( line_str[0] == "#" ))
 		{
 			fIsSatementEnd = 1
 		}
@@ -1537,9 +1757,9 @@ macro auto_insert_trace_info_in_buffer()
 					isBlandLine = 0
 					while( ln < childsym.lnLim )
 					{
-						retract_line = GetBufLine (hbuf, ln)
+						line_str = GetBufLine (hbuf, ln)
 						//去掉注释的干扰
-						RetVal = skip_comment_from_string(retract_line,fIsEnd)
+						RetVal = skip_comment_from_string(line_str,fIsEnd)
 						curr_New = RetVal.content_str
 						fIsEnd = RetVal.fIsEnd
 						if(isCodeBegin == 1)
@@ -1591,9 +1811,9 @@ macro auto_insert_trace_info_in_buffer()
 				ln = symbol.lnName
 				while( ln < symbol.lnLim )
 				{
-					retract_line = GetBufLine (hbuf, ln)
+					line_str = GetBufLine (hbuf, ln)
 					//去掉注释的干扰
-					RetVal = skip_comment_from_string(retract_line,fIsEnd)
+					RetVal = skip_comment_from_string(line_str,fIsEnd)
 					curr_New = RetVal.content_str
 					fIsEnd = RetVal.fIsEnd
 					if(isCodeBegin == 1)
@@ -1651,525 +1871,418 @@ macro auto_expand()
 	if (hwnd == 0)
 		stop
 
-	line_num = get_curr_slect_line_num()
-	//msg("auto_expand() :: line_num=@line_num@")
 	sel = GetWndSel(hwnd)
-	//msg("auto_expand() :: sel=[@sel@]")
 	if(sel.lnFirst != sel.lnLast)
 	{
-		/*块命令处理*/
-		block_command_proc()
+		block_command_proc()                            //块选择命令处理
 	}
 	
 	if (sel.ichFirst == 0)
 		stop
 	
-	hbuf = get_curr_window_buffer_handle()
-	ln = line_num; //当前所在行
-
-	pretty_format = get_pretty_code_left_format()
-	alignment_line = pretty_format.alignment
-	retract_line = pretty_format.retract
-	
-	//msg("auto_expand() :: alignment_line = [@alignment_line@] retract_line = [@retract_line@]")
-	
 	// parse word just to the left of the insertion point
 	line_str = get_curr_line_str()
-	//msg("auto_expand() :: line_str = [@line_str@]")
 	wordinfo = get_word_left_of_ich(sel.ichFirst, line_str)
-	//msg("auto_expand() :: wordinfo = [@wordinfo@]")
-	
-	sel.lnFirst = sel.lnLast
-	sel.ichFirst = wordinfo.ich
-	sel.ichLim = wordinfo.ich
 
-	//自动完成简化命令的匹配显示
-	wordinfo.word = restore_command(hbuf, wordinfo.word)
-	//msg(cat("auto_expand() :: wordinfo =", wordinfo.word)
-	sel = GetWndSel(hwnd)
-
-	if (wordinfo.word == "pn") //问题单号的处理
-	{
-		DelBufLine(hbuf, ln)
-		add_promble_number()
-		return
-	}
-	else if (wordinfo.word == "config" || wordinfo.word == "co") //配置命令执行
-	{
-		DelBufLine(hbuf, ln)
-		configure_system()
-		return
-	}
-	else if (wordinfo.word == "hi") //修改历史记录更新
-	{
-		DelBufLine(hbuf, ln)
-		insert_histort(hbuf, ln)
-		return
-	}
-	else if (wordinfo.word == "abg")
-	{
-		sel.ichFirst = sel.ichFirst - 3
-		SetWndSel(hwnd, sel)
-		insert_revise_add()
-		PutBufLine(hbuf, ln+1, alignment_line)
-		SetBufIns(hwnd, ln+1, sel.ichFirst)
-		return
-	}
-	else if (wordinfo.word == "dbg")
-	{
-		sel.ichFirst = sel.ichFirst - 3
-		SetWndSel(hwnd,sel)
-		insert_revise_del()
-		PutBufLine(hbuf, ln+1, alignment_line)
-		SetBufIns(hwnd, ln+1, sel.ichFirst)
-		return
-	}
-	else if (wordinfo.word == "mbg")
-	{
-		sel.ichFirst = sel.ichFirst - 3
-		SetWndSel(hwnd,sel)
-		insert_revise_modify()
-		PutBufLine(hbuf, ln+1, alignment_line)
-		SetBufIns(hwnd, ln+1, sel.ichFirst)
-		return
-	}
-	
-	expand_proc(wordinfo, retract_line, alignment_line, ln, sel)
+	hbuf = get_curr_window_buffer_handle()
+	wordinfo.word = restore_command(hbuf, wordinfo.word)  //自动完成简化命令的匹配显示
+	key_str = wordinfo.word
+	line_num = get_curr_slect_line_num()                  //当前所在行
+	expand_control_structures(key_str, line_num)
+	expand_define(key_str, line_num)
+	expand_revise_response(key_str, line_num)
+	expand_sundry_response(key_str, line_num)
 }
 
-macro expand_proc(wordinfo, retract_line, alignment_line, ln, sel)
+macro expand_control_structures(key_str, line_num)
 {
-	commend_str = wordinfo.word
-	hwnd = GetCurrentWnd()
-	if (hwnd == 0)
-		stop
-	hbuf = GetWndBuf(hwnd)
-
-	author_name = get_curr_autor_name()
-	date_str = get_system_time_date()
-	question_str = get_question_str()
-	
-	if(True == test_language_is_english())
+	flag = True
+	if (key_str == "if")
 	{
-		use_new_line_msg = "The right margine is small, Please use a new line."
-		input_comment_msg = "Please input comment."
-		input_loop_variable_msg = "Please input loop variable."
-		input_case_num_msg = "Please input the number of case."
-		input_struct_name_msg = "Please input struct name."
-		input_enum_name_msg = "Please input enum name."
-		input_function_name_msg = "Please input function name."
-		input_description_msg = "Description"
+		line_num = insert_if()
+	}
+	else if( key_str == "else" )
+	{
+		line_num = insert_else()
+	}
+	else if (key_str == "ef")
+	{
+		line_num = insert_else_if()
+	}
+	else if (key_str == "ife")
+	{
+		line_num = insert_if_else()
+	}
+	else if (key_str == "ifs")
+	{
+		line_num = insert_if_elseif_else()
+	}
+	else if (key_str == "for")
+	{
+		line_num = insert_for()
+	}
+	else if (key_str == "do")
+	{
+		line_num = insert_do_while()
+	}
+	else if (key_str == "while")
+	{
+		line_num = insert_while()
+	}
+	else if (key_str == "switch")
+	{
+		line_num = insert_switch()
+	}
+	else if (key_str == "case")
+	{
+		line_num = insert_case()
+	}
+	else if (key_str == "struct")
+	{
+		line_num = insert_struct()
+	}
+	else if (key_str == "enum")
+	{
+		line_num = insert_enum()
 	}
 	else
 	{
-		use_new_line_msg = "右边空间太小,请用新的行."
-		input_comment_msg = "请输入注释的内容"
-		input_loop_variable_msg = "请输入循环变量"
-		input_case_num_msg = "请输入case的个数"
-		input_struct_name_msg = "请输入结构名称"
-		input_enum_name_msg = "请输入枚举名"
-		input_function_name_msg = "请输入函数名称"
-		input_description_msg = "Description"
+		flag = False
 	}
-	/*英文注释*/
-	if (commend_str == "/*")
+
+	if (True == flag)
 	{
-		if(wordinfo.ichLim > 70)
-		{
-			Msg(use_new_line_msg)
-			stop
-		}
-		curr_line = GetBufLine(hbuf, sel.lnFirst);
-		temp_left = strmid(curr_line,0,wordinfo.ichLim)
-		lineLen = strlen(curr_line)
-		kk = 0
-		while(wordinfo.ichLim + kk < lineLen)
-		{
-			if((curr_line[wordinfo.ichLim + kk] != " ")||(curr_line[wordinfo.ichLim + kk] != "\t")
-			{
-				msg("you must insert /* at the end of a line");
-				return
-			}
-			kk = kk + 1
-		}
-		content_str = Ask(input_comment_msg)
-		DelBufLine(hbuf, ln)
-		temp_left = cat( temp_left, " ")
-		comment_content(hbuf,ln,temp_left,content_str,1)
-		return
+		delect_line(line_num+1)
 	}
-	else if(commend_str == "{")
+	//msg("11 key_str = @key_str@")
+	search_forward()
+	//ask("22 key_str = @key_str@")
+}
+
+macro expand_define(key_str, line_num)
+{
+	flag = True
+	if (key_str == "#ifdef")
 	{
-		insert_line_string( ln + 1, "@retract_line@")
-		insert_line_string( ln + 2, "@alignment_line@" # "}")
-		SetBufIns (hbuf, ln + 1, strlen(retract_line))
-		return
+		line_num = insert_ifdef()
+		delect_line(line_num+1)
 	}
-	else if (commend_str == "while" )
+	else if (key_str == "#ifndef")
 	{
-		SetBufSelText(hbuf, " ( # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
+		line_num = insert_ifndef()
+		delect_line(line_num+1)
 	}
-	else if( commend_str == "else" )
+	else if (key_str == "#if")
 	{
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-		SetBufIns (hbuf, ln + 2, strlen(retract_line))
-		return
-	}
-	else if (commend_str == "#ifd" || commend_str == "#ifdef") //#ifdef
-	{
-		DelBufLine(hbuf, ln)
-		insert_ifdef()
-		return
-	}
-	else if (commend_str == "#ifn" || commend_str == "#ifndef") //#ifndef
-	{
-		DelBufLine(hbuf, ln)
-		insert_ifndef()
-		return
-	}
-	else if (commend_str == "#if")
-	{
-		DelBufLine(hbuf, ln)
+		delect_line(line_num)
 		insert_pre_def_if()
 		return
 	}
-	else if (commend_str == "cpp")
+	else
 	{
-		DelBufLine(hbuf, ln)
-		insert_cplusplus(hbuf, ln)
+		flag = False
+	}
+
+	if (True == flag)
+	{
+		delect_line(line_num+1)
+	}
+}
+
+macro expand_revise_response(key_str, line_num)
+{
+	flag = True
+	if (key_str == "pn") //问题单号的处理
+	{
+		delect_line(line_num)
+		add_promble_number()
 		return
 	}
-	else if (commend_str == "if")
+	else if (key_str == "ap")
 	{
-		SetBufSelText(hbuf, " ( # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-	}
-	else if (commend_str == "ef")
-	{
-		PutBufLine(hbuf, ln, alignment_line # "else if ( # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-	}
-	else if (commend_str == "ife")
-	{
-		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-		insert_line_string( ln + 4, "@alignment_line@" # "else")
-		insert_line_string( ln + 5, "@alignment_line@" # "{")
-		insert_line_string( ln + 6, "@retract_line@" # ";")
-		insert_line_string( ln + 7, "@alignment_line@" # "}")
-	}
-	else if (commend_str == "ifs")
-	{
-		PutBufLine(hbuf, ln, alignment_line # "if ( # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-		insert_line_string( ln + 4, "@alignment_line@" # "else if ( # )")
-		insert_line_string( ln + 5, "@alignment_line@" # "{")
-		insert_line_string( ln + 6, "@retract_line@" # ";")
-		insert_line_string( ln + 7, "@alignment_line@" # "}")
-		insert_line_string( ln + 8, "@alignment_line@" # "else")
-		insert_line_string( ln + 9, "@alignment_line@" # "{")
-		insert_line_string( ln + 10, "@retract_line@" # ";")
-		insert_line_string( ln + 11, "@alignment_line@" # "}")
-	}
-	else if (commend_str == "for")
-	{
-		SetBufSelText(hbuf, " ( # ; # ; # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-		SetWndSel(hwnd, sel)
-		search_forward()
-		curr_value = ask(input_loop_variable_msg)
-		newsel = sel
-		newsel.ichLim = GetBufLineLength (hbuf, ln)
-		SetWndSel(hwnd, newsel)
-		SetBufSelText(hbuf, " ( @curr_value@ = # ; @curr_value@ # ; @curr_value@++ )")
-	}
-	else if (commend_str == "fo")
-	{
-		SetBufSelText(hbuf, "r ( i = 0; i < # ; i++ )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "}")
-		symname =GetCurSymbol ()
-		symbol = GetSymbolLocation(symname)
-		if(strlen(symbol) > 0)
-		{
-			nIdx = symbol.lnName + 1;
-			while( 1 )
-			{
-				curr_line = GetBufLine(hbuf, nIdx)
-				nRet = string_cmp(curr_line,"{")
-				if( nRet != 0xffffffff )
-				{
-					break;
-				}
-				nIdx = nIdx + 1
-				if(nIdx > symbol.lnLim)
-				{
-					break
-				}
-			}
-			int32_t
-			insert_line_string( nIdx + 1, "    int32_t i = 0;")
-		}
-	}
-	else if (commend_str == "switch" )
-	{
-		case_num = ask(input_case_num_msg)
-		SetBufSelText(hbuf, " ( # )")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_multi_case_proc(hbuf, alignment_line, case_num)
-	}
-	else if (commend_str == "do")
-	{
-		msg("else if (commend_str == do)")
-		insert_line_string( ln + 1, "@alignment_line@" # "{")
-		insert_line_string( ln + 2, "@retract_line@" # "#")
-		insert_line_string( ln + 3, "@alignment_line@" # "} while ( # );")
-	}
-	else if (commend_str == "case" )
-	{
-		SetBufSelText(hbuf, " # :")
-		insert_line_string( ln + 1, "@retract_line@" # "#")
-		insert_line_string( ln + 2, "@retract_line@" # "break;")
-	}
-	else if (commend_str == "struct" || commend_str == "st")
-	{
-		DelBufLine(hbuf, ln)
-		struct_name = toupper(Ask(input_struct_name_msg))
-		insert_line_string( ln, "@alignment_line@typedef struct @struct_name@")
-		insert_line_string( ln + 1, "@alignment_line@{");
-		insert_line_string( ln + 2, "@retract_line@");
-		struct_name = cat(struct_name,"_STRU")
-		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;")
-		SetBufIns (hbuf, ln + 2, strlen(retract_line))
+		line_num = insert_promble_description()
+		delect_line(line_num)
 		return
 	}
-	else if (commend_str == "enum" || commend_str == "en")
+	else if (key_str == "ab")
 	{
-		DelBufLine(hbuf, ln)
-		struct_name = toupper(Ask(input_enum_name_msg))
-		insert_line_string( ln, "@alignment_line@typedef enum @struct_name@")
-		insert_line_string( ln + 1, "@alignment_line@{");
-		insert_line_string( ln + 2, "@retract_line@");
-		struct_name = cat(struct_name, "_ENUM")
-		insert_line_string( ln + 3, "@alignment_line@}@struct_name@;")
-		SetBufIns (hbuf, ln + 2, strlen(retract_line))
-		return
+		line_num = insert_revise_add_begin(line_num)
 	}
-	else if (commend_str == "file" || commend_str == "fi")
+	else if (key_str == "ae")
 	{
-		DelBufLine(hbuf, ln)
+		line_num = insert_revise_add_end(line_num)
+	}
+	else if (key_str == "db")
+	{
+		line_num = insert_revise_del_begin(line_num)
+	}
+	else if (key_str == "de")
+	{
+		line_num = insert_revise_del_end(line_num)
+	}
+	else if (key_str == "mb")
+	{
+		line_num = insert_revise_modify_begin(line_num)
+	}
+	else if (key_str == "me")
+	{
+		line_num = insert_revise_modify_end(line_num)
+	}
+	else if (key_str == "abg")
+	{
+		line_num = insert_revise_add()
+		flag = False
+	}
+	else if (key_str == "dbg")
+	{
+		line_num = insert_revise_del()
+		flag = False
+	}
+	else if (key_str == "mbg")
+	{
+		line_num = insert_revise_modify()
+		flag = False
+	}
+	else
+	{
+		flag = False
+	}
+
+	if (True == flag)
+	{
+		delect_line(line_num+1)
+	}
+}
+
+macro expand_sundry_response(key_str, line_num)
+{
+	hbuf = get_curr_window_buffer_handle()
+	if (key_str == "config") //配置命令执行
+	{
+		delect_line(line_num)
+		configure_system()
+	}
+	else if (key_str == "history") //修改历史记录更新
+	{
+		delect_line(line_num)
+		insert_history_info(hbuf, line_num)
+	}
+	else if (key_str == "/*") //插入"/* */"风格的注释
+	{
+		insert_comment()
+	}
+	else if(key_str == "{")
+	{
+		expand_brace_large()
+		delect_line(line_num)
+	}
+	else if (key_str == "file")
+	{
+		delect_line(line_num)
 		insert_file_header(hbuf, 0, "")//插入文件头说明
-		return
 	}
-	else if (commend_str == "func" || commend_str == "fu")
+	else if (key_str == "function")
 	{
-		DelBufLine(hbuf,ln)
+		delect_line(line_num)
 		create_function_header()//插入功能函数头说明
 	}
-	else if (commend_str == "tab")
+	else if (key_str == "tab")
 	{
-		DelBufLine(hbuf, ln)
+		delect_line(line_num)
 		replace_buffer_tab()
 		return
 	}
-	else if (commend_str == "ap")
+	else if (key_str == "cpp")
 	{
-		DelBufLine(hbuf, ln)
-		question_v = add_promble_number()
-		insert_line_string( ln, "@alignment_line@/* Promblem Number: @question_v@     Author:@author_name@,   Date:@date_str@ ");
-		content_str = Ask(input_description_msg)
-		temp_left = cat(alignment_line,"   Description    : ");
-		if(strlen(temp_left) > 70)
-		{
-			Msg("The right margine is small, Please use a new line")
-			stop
-		}
-		ln = comment_content(hbuf, ln + 1, temp_left, content_str, 1)
+		delect_line(line_num)
+		insert_cplusplus(hbuf, line_num)
 		return
 	}
-	else if (commend_str == "hd")
+	else if (key_str == "hd")
 	{
-		DelBufLine(hbuf, ln)
+		delect_line(line_num)
 		create_function_def(hbuf)//生成C语言的头文件
 		return
 	}
-	else if (commend_str == "hdn")
+	else if (key_str == "hdn")
 	{
-		DelBufLine(hbuf, ln)
+		delect_line(line_num)
 		create_new_header_file()//生成不要文件名的新头文件
-		return
-	}
-	else if (commend_str == "ab")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string( ln, "@alignment_line@/* BEGIN: Added by @author_name@, @date_str@ @question_str@*/")
-		return
-	}
-	else if (commend_str == "ae")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string( ln, "@alignment_line@/* END:   Added by @author_name@, @date_str@ */");
-		return
-	}
-	else if (commend_str == "db")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string( ln, "@alignment_line@/* BEGIN: Deleted by @author_name@, @date_str@ @question_str@*/")
-		return
-	}
-	else if (commend_str == "de")
-	{
-		DelBufLine(hbuf, ln + 0)
-		insert_line_string( ln, "@alignment_line@/* END: Deleted by @author_name@, @date_str@ */");
-		return
-	}
-	else if (commend_str == "mb")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string( ln, "@alignment_line@/* BEGIN: Modified by @author_name@, @date_str@ @question_str@*/")
-		return
-	}
-	else if (commend_str == "me")
-	{
-		DelBufLine(hbuf, ln)
-		insert_line_string( ln, "@alignment_line@/* END:   Modified by @author_name@, @date_str@ */");
 		return
 	}
 	else
 	{
 		search_forward()
-		//expand_brace_large()
 		stop
 	}
-	SetWndSel(hwnd, sel)
-	search_forward()
+
+	//search_forward()
 }
 
 macro block_command_proc()
 {
-	msg("run block_command_proc()+++++")
-	hwnd = GetCurrentWnd()
-	if (hwnd == 0)
-		stop
-	sel = GetWndSel(hwnd)
-	hbuf = GetWndBuf(hwnd)
-	if(sel.lnFirst > 0)
+	line_num = get_curr_slect_line_num()
+	if(line_num > 0)
 	{
-		ln = sel.lnFirst - 1
+		line_num--
 	}
-	else
-	{
-		stop
-	}
-	retract_line = GetBufLine(hbuf,ln)
-	retract_line = trim_string(retract_line)
-	if(retract_line == "while" || retract_line == "wh")
+	
+	line_str = get_curr_line_str()
+	key_str = trim_string(line_str)
+	if(key_str == "while" || key_str == "wh")
 	{
 		insert_while()                    //插入while
 	}
-	else if(retract_line == "do")
+	else if(key_str == "do")
 	{
 		insert_do_while()                 //插入do while语句
 	}
-	else if(retract_line == "for")
+	else if(key_str == "for")
 	{
 		insert_for()                      //插入for语句
 	}
-	else if(retract_line == "if")
+	else if(key_str == "if")
 	{
 		insert_if()                       //插入if语句
 	}
-	else if(retract_line == "el" || retract_line == "else")
+	else if(key_str == "el" || key_str == "else")
 	{
 		insert_else()                     //插入else语句
-		DelBufLine(hbuf,ln)
 		stop
 	}
-	else if((retract_line == "#ifd") || (retract_line == "#ifdef"))
+	else if((key_str == "#ifd") || (key_str == "#ifdef"))
 	{
 		insert_ifdef()                    //插入#ifdef
-		DelBufLine(hbuf,ln)
 		stop
 	}
-	else if((retract_line == "#ifn") || (retract_line == "#ifndef"))
+	else if((key_str == "#ifn") || (key_str == "#ifndef"))
 	{
 		insert_ifndef()                   //插入#ifdef
-		DelBufLine(hbuf,ln)
 		stop
 	}
-	else if (retract_line == "abg")
+	else if (key_str == "abg")
 	{
-		insert_revise_add()
-		DelBufLine(hbuf, ln)
+		key_str()
 		stop
 	}
-	else if (retract_line == "dbg")
+	else if (key_str == "dbg")
 	{
 		insert_revise_del()
-		DelBufLine(hbuf, ln)
 		stop
 	}
-	else if (retract_line == "mbg")
+	else if (key_str == "mbg")
 	{
 		insert_revise_modify()
-		DelBufLine(hbuf, ln)
 		stop
 	}
-	else if(retract_line == "#if")
+	else if(key_str == "#if")
 	{
 		insert_pre_def_if()
-		DelBufLine(hbuf,ln)
 		stop
 	}
-	DelBufLine(hbuf,ln)
+	
+	delect_line(line_num)
 	search_forward()
 	stop
-	
-	msg("run block_command_proc()----")
 }
 
 /*
 修复补全关键字
 */
-macro restore_command(hbuf,commend_str)
+macro matching_abbreviation(abbreviation_str, target_str)
 {
-	if(commend_str == "ca")
+	ret = Invalid
+	target = tolower(target_str)
+	abbreviation = tolower(abbreviation_str)
+	target_len = strlen(target)
+	abbreviation_len = strlen(abbreviation)
+
+	is_english = test_language_is_english()
+	if(True == is_english)
 	{
-		SetBufSelText(hbuf, "se")
-		commend_str = "case"
+		msg_str = "Please enter at least two characters."
 	}
-	else if(commend_str == "sw")
+	else
 	{
-		SetBufSelText(hbuf, "itch")
-		commend_str = "switch"
+		msg_str = "请输入至少两个字符。"
 	}
-	else if(commend_str == "el")
+	
+	if (abbreviation_len < 2)
 	{
-		SetBufSelText(hbuf, "se")
-		commend_str = "else"
+		msg(msg_str)
+		stop
 	}
-	else if(commend_str == "wh")
+	
+	if (abbreviation_len <= target_len)
 	{
-		SetBufSelText(hbuf, "ile")
-		commend_str = "while"
+		ret = False
+		complement = strmid (target, abbreviation_len, target_len)
+		str = cat(abbreviation, complement)
+		if (str == target)
+		{
+			ret = True
+		}
 	}
-	return commend_str
+
+	return ret
+}
+
+/*
+修复补全关键字
+*/
+macro restore_command(hbuf, key_str)
+{
+	if(True == matching_abbreviation(key_str, "case"))
+	{
+		key_str = "case"
+	}
+	else if(True == matching_abbreviation(key_str, "switch"))
+	{
+		key_str = "switch"
+	}
+	else if(True == matching_abbreviation(key_str, "else"))
+	{
+		key_str = "else"
+	}
+	else if(True == matching_abbreviation(key_str, "while"))
+	{
+		key_str = "while"
+	}
+	else if (True == matching_abbreviation(key_str, "#ifdef"))
+	{
+		key_str = "#ifdef"
+	}
+	else if (True == matching_abbreviation(key_str, "#ifndef"))
+	{
+		key_str = "#ifndef"
+	}
+	else if if (True == matching_abbreviation(key_str, "struct"))
+	{
+		key_str = "struct"
+	}
+	else if (True == matching_abbreviation(key_str, "enum"))
+	{
+		key_str = "enum"
+	}
+	else if (True == matching_abbreviation(key_str, "file"))
+	{
+		key_str = "file"
+	}
+	else if (True == matching_abbreviation(key_str, "function"))
+	{
+		key_str = "function"
+	}
+	else if (True == matching_abbreviation(key_str, "config"))
+	{
+		key_str = "config"
+	}
+	else if (True == matching_abbreviation(key_str, "history"))
+	{
+		key_str = "history"
+	}
+	
+	//msg("key_str = \"@key_str@}\"")
+	return key_str
 }
 
 macro search_forward()
@@ -2183,14 +2296,14 @@ The search pattern string is given in pattern.
 	If fRegExpr, then the pattern contains a regular expression. Otherwise, the pattern is a simple string.
 	If fWholeWordsOnly then only whole words will cause a match.
 	*/
-	LoadSearchPattern("#", 1, 0, 1);
-	Search_Forward
+	LoadSearchPattern("#", 1, 0, 1)
+	//Search_Forward
 }
 
 macro search_backward()
 {
-	LoadSearchPattern("#", 1, 0, 1);
-	Search_Backward
+	LoadSearchPattern("#", 1, 0, 1)
+	//Search_Backward
 }
 
 macro string_cmp(str1,str2)
@@ -2207,16 +2320,23 @@ macro string_cmp(str1,str2)
 	{
 		if(str1[i] == str2[j])
 		{
+			//msg(cat("str1[@i@] == str2[@j@] == ", str1[i]))
 			while(j < len2)
 			{
 				j = j + 1
-				if(str1[i+j] != str2[j])
+				n = i + j
+				//msg("while( j(@j@) < len2(@len2@))  n(@n@)")
+				if(str1[n] != str2[j])
 				{
+					//str ="\"" # str1[n] # "\"" # "=str1[@n@] != str2[@j@]=" # "\"" # str2[j] # "\""
+					//msg("@str@  i=\"@i@\" break")
 					break
 				}
 			}
+			
 			if(j == len2)
 			{
+				//msg(" return @i@; [ j=\"@j@\  i=\"@i@\" ]")
 				return i
 			}
 			j = 0
@@ -2237,57 +2357,57 @@ macro insert_trace_info()
 	insert_trace_in_curr_function(hbuf, symbol)
 }
 
-macro get_first_word(retract_line)
+macro get_first_word(line_str)
 {
-	retract_line = trim_left(retract_line)
+	line_str = trim_left(line_str)
 	nIdx = 0
-	iLen = strlen(retract_line)
+	iLen = strlen(line_str)
 	while(nIdx < iLen)
 	{
-		if( (retract_line[nIdx] == " ") || (retract_line[nIdx] == "\t")
-		|| (retract_line[nIdx] == ";") || (retract_line[nIdx] == "(")
-		|| (retract_line[nIdx] == ".") || (retract_line[nIdx] == "{")
-		|| (retract_line[nIdx] == ",") || (retract_line[nIdx] == ":") )
+		if( (line_str[nIdx] == " ") || (line_str[nIdx] == "\t")
+		|| (line_str[nIdx] == ";") || (line_str[nIdx] == "(")
+		|| (line_str[nIdx] == ".") || (line_str[nIdx] == "{")
+		|| (line_str[nIdx] == ",") || (line_str[nIdx] == ":") )
 		{
-			return strmid(retract_line,0,nIdx)
+			return strmid(line_str,0,nIdx)
 		}
 		nIdx = nIdx + 1
 	}
-	return retract_line //return ""
+	return line_str //return ""
 }
 
-macro check_is_code_begin(retract_line)
+macro check_is_code_begin(line_str)
 {
-	iLen = strlen(retract_line)
+	iLen = strlen(line_str)
 	if(iLen == 0)
 	{
 		return 0
 	}
 	nIdx = 0
 	nWord = 0
-	if( (retract_line[nIdx] == "(") || (retract_line[nIdx] == "-")
-	|| (retract_line[nIdx] == "*") || (retract_line[nIdx] == "+"))
+	if( (line_str[nIdx] == "(") || (line_str[nIdx] == "-")
+	|| (line_str[nIdx] == "*") || (line_str[nIdx] == "+"))
 	{
 		return 1
 	}
-	if( retract_line[nIdx] == "#" )
+	if( line_str[nIdx] == "#" )
 	{
 		return 0
 	}
 	while(nIdx < iLen)
 	{
-		if( (retract_line[nIdx] == " ")||(retract_line[nIdx] == "\t")
-			 || (retract_line[nIdx] == "(")||(retract_line[nIdx] == "{")
-			 || (retract_line[nIdx] == ";") )
+		if( (line_str[nIdx] == " ")||(line_str[nIdx] == "\t")
+			 || (line_str[nIdx] == "(")||(line_str[nIdx] == "{")
+			 || (line_str[nIdx] == ";") )
 		{
 			if(nWord == 0)
 			{
-				if( (retract_line[nIdx] == "(")||(retract_line[nIdx] == "{")
-						 || (retract_line[nIdx] == ";")  )
+				if( (line_str[nIdx] == "(")||(line_str[nIdx] == "{")
+						 || (line_str[nIdx] == ";")  )
 				{
 					return 1
 				}
-				curr_FirstWord = StrMid(retract_line,0,nIdx)
+				curr_FirstWord = StrMid(line_str,0,nIdx)
 				if(curr_FirstWord == "return")
 				{
 					return 1
@@ -2295,7 +2415,7 @@ macro check_is_code_begin(retract_line)
 			}
 			while(nIdx < iLen)
 			{
-				if( (retract_line[nIdx] == " ")||(retract_line[nIdx] == "\t") )
+				if( (line_str[nIdx] == " ")||(line_str[nIdx] == "\t") )
 				{
 					nIdx = nIdx + 1
 				}
@@ -2314,9 +2434,9 @@ macro check_is_code_begin(retract_line)
 		{
 			asciiA = AsciiFromChar("A")
 			asciiZ = AsciiFromChar("Z")
-			ch = toupper(retract_line[nIdx])
+			ch = toupper(line_str[nIdx])
 			asciiCh = AsciiFromChar(ch)
-			if( ( retract_line[nIdx] == "_" ) || ( retract_line[nIdx] == "*" )
+			if( ( line_str[nIdx] == "_" ) || ( line_str[nIdx] == "*" )
 				 || ( ( asciiCh >= asciiA ) && ( asciiCh <= asciiZ ) ) )
 			{
 				return 0
@@ -2378,13 +2498,13 @@ macro remove_trace_info()
 	fIsEntry = 0
 	while(ln < nLineEnd)
 	{
-		retract_line = GetBufLine(hbuf, ln)
+		line_str = GetBufLine(hbuf, ln)
 
 		/*剔除其中的注释语句*/
-		RetVal = trim_string(retract_line)
+		RetVal = trim_string(line_str)
 		if(fIsEntry == 0)
 		{
-			ret = string_cmp(retract_line,curr_Entry)
+			ret = string_cmp(line_str,curr_Entry)
 			if(ret != 0xffffffff)
 			{
 				DelBufLine(hbuf,ln)
@@ -2394,7 +2514,7 @@ macro remove_trace_info()
 				continue
 			}
 		}
-		ret = string_cmp(retract_line,curr_Exit)
+		ret = string_cmp(line_str,curr_Exit)
 		if(ret != 0xffffffff)
 		{
 			DelBufLine(hbuf,ln)
@@ -2609,12 +2729,12 @@ macro comment_content (hbuf,ln,curr_PreStr,content_str,isEnd)
 	//判断如果剪贴板是0行时对于有些版本会有问题，要排除掉
 	if(lnMax != 0)
 	{
-		retract_line = GetBufLine(hNewBuf , 0)
-		ret = string_cmp(retract_line,curr_Tmp)
+		line_str = GetBufLine(hNewBuf , 0)
+		ret = string_cmp(line_str,curr_Tmp)
 		if(ret == 0)
 		{
 			/*如果输入窗输入的内容是剪贴板的一部分说明是剪贴过来的取剪贴板中的内容*/
-			content_str = trim_string(retract_line)
+			content_str = trim_string(line_str)
 		}
 		else
 		{
@@ -2631,8 +2751,8 @@ macro comment_content (hbuf,ln,curr_PreStr,content_str,isEnd)
 	{
 		if(nIdx != 0)
 		{
-			retract_line = GetBufLine(hNewBuf , nIdx)
-			content_str = trim_left(retract_line)
+			line_str = GetBufLine(hNewBuf , nIdx)
+			content_str = trim_left(line_str)
 			curr_PreStr = curr_LeftBlank
 		}
 		iLen = strlen (content_str)
@@ -2760,55 +2880,55 @@ macro create_blank_string(nBlankCount)
 /*
 剔除左边多余的空格和tab
 */
-macro trim_left(retract_line)
+macro trim_left(line_str)
 {
-	nLen = strlen(retract_line)
+	nLen = strlen(line_str)
 	if(nLen == 0)
 	{
-		return retract_line
+		return line_str
 	}
 	nIdx = 0
 	while( nIdx < nLen )
 	{
-		if( ( retract_line[nIdx] != " ") && (retract_line[nIdx] != "\t") )
+		if( ( line_str[nIdx] != " ") && (line_str[nIdx] != "\t") )
 		{
 			break
 		}
 		nIdx = nIdx + 1
 	}
-	return strmid(retract_line,nIdx,nLen)
+	return strmid(line_str,nIdx,nLen)
 }
 
 /*
 剔除右边多余的空格和tab
 */
-macro trim_right(retract_line)
+macro trim_right(line_str)
 {
-	nLen = strlen(retract_line)
+	nLen = strlen(line_str)
 	if(nLen == 0)
 	{
-		return retract_line
+		return line_str
 	}
 	nIdx = nLen
 	while( nIdx > 0 )
 	{
 		nIdx = nIdx - 1
-		if( ( retract_line[nIdx] != " ") && (retract_line[nIdx] != "\t") )
+		if( ( line_str[nIdx] != " ") && (line_str[nIdx] != "\t") )
 		{
 			break
 		}
 	}
-	return strmid(retract_line,0,nIdx+1)
+	return strmid(line_str,0,nIdx+1)
 }
 
 /*
 剔除两边多余的空格和tab
 */
-macro trim_string(retract_line)
+macro trim_string(line_str)
 {
-	retract_line = trim_left(retract_line)
-	retract_line = trim_right(retract_line)
-	return retract_line
+	line_str = trim_left(line_str)
+	line_str = trim_right(line_str)
+	return line_str
 }
 
 macro get_function_def(hbuf,symbol)
@@ -2823,29 +2943,29 @@ macro get_function_def(hbuf,symbol)
 
 	while(ln < symbol.lnLim)
 	{
-		retract_line = GetBufLine (hbuf, ln)
+		line_str = GetBufLine (hbuf, ln)
 		//去掉被注释掉的内容
-		RetVal = skip_comment_from_string(retract_line,fIsEnd)
-		retract_line = RetVal.content_str
-		retract_line = trim_string(retract_line)
+		RetVal = skip_comment_from_string(line_str,fIsEnd)
+		line_str = RetVal.content_str
+		line_str = trim_string(line_str)
 		fIsEnd = RetVal.fIsEnd
 		//如果是{表示函数参数头结束了
-		ret = string_cmp(retract_line,"{")
+		ret = string_cmp(line_str,"{")
 		if(ret != 0xffffffff)
 		{
-			retract_line = strmid(retract_line,0,ret)
-			curr_Func = cat(curr_Func,retract_line)
+			line_str = strmid(line_str,0,ret)
+			curr_Func = cat(curr_Func,line_str)
 			break
 		}
-		curr_Func = cat(curr_Func,retract_line)
+		curr_Func = cat(curr_Func,line_str)
 		ln = ln + 1
 	}
 	return curr_Func
 }
 
-macro get_word_form_string(hbuf,retract_line,nBeg,nEnd,chBeg,chSeparator,chEnd)
+macro get_word_form_string(hbuf,line_str,nBeg,nEnd,chBeg,chSeparator,chEnd)
 {
-	if((nEnd > strlen(retract_line) || (nBeg > nEnd))
+	if((nEnd > strlen(line_str) || (nBeg > nEnd))
 	{
 		return 0
 	}
@@ -2854,7 +2974,7 @@ macro get_word_form_string(hbuf,retract_line,nBeg,nEnd,chBeg,chSeparator,chEnd)
 	//先定位到开始字符标记处
 	while(nIdx < nEnd)
 	{
-		if(retract_line[nIdx] == chBeg)
+		if(line_str[nIdx] == chBeg)
 		{
 			break
 		}
@@ -2869,9 +2989,9 @@ macro get_word_form_string(hbuf,retract_line,nBeg,nEnd,chBeg,chSeparator,chEnd)
 	//以分隔符为标记进行搜索
 	while(nIdx < nEnd)
 	{
-		if(retract_line[nIdx] == chSeparator)
+		if(line_str[nIdx] == chSeparator)
 		{
-			word = strmid(retract_line,nBegWord,nIdx)
+			word = strmid(line_str,nBegWord,nIdx)
 			word = trim_string(word)
 			nLen = strlen(word)
 			if(nMaxLen < nLen)
@@ -2881,11 +3001,11 @@ macro get_word_form_string(hbuf,retract_line,nBeg,nEnd,chBeg,chSeparator,chEnd)
 			AppendBufLine(hbuf,word)
 			nBegWord = nIdx + 1
 		}
-		if(retract_line[nIdx] == chBeg)
+		if(line_str[nIdx] == chBeg)
 		{
 			iCount = iCount + 1
 		}
-		if(retract_line[nIdx] == chEnd)
+		if(line_str[nIdx] == chEnd)
 		{
 			iCount = iCount - 1
 			nEndWord = nIdx
@@ -2898,7 +3018,7 @@ macro get_word_form_string(hbuf,retract_line,nBeg,nEnd,chBeg,chSeparator,chEnd)
 	}
 	if(nEndWord > nBegWord)
 	{
-		word = strmid(retract_line,nBegWord,nEndWord)
+		word = strmid(line_str,nBegWord,nEndWord)
 		word = trim_string(word)
 		nLen = strlen(word)
 		if(nMaxLen < nLen)
@@ -2920,7 +3040,6 @@ macro function_head_comment(hbuf, ln, curr_Func, newFunc)
 	if(newFunc != 1)
 	{
 		symbol = GetSymbolLocationFromLn(hbuf, ln)
-		//msg("symbol=GetSymbolLocationFromLn(hbuf=@hbuf@, ln=@ln@)=[@symbol@]")
 		if(strlen(symbol) > 0)
 		{
 			hTmpBuf = NewBuf("Tempbuf")
@@ -2929,10 +3048,10 @@ macro function_head_comment(hbuf, ln, curr_Func, newFunc)
 				stop
 			}
 			//将文件参数头整理成一行并去掉了注释
-			retract_line = get_function_def(hbuf, symbol)
+			line_str = get_function_def(hbuf, symbol)
 			iBegin = symbol.ichName
 			//取出返回值定义
-			curr_Temp = strmid(retract_line,0,iBegin)
+			curr_Temp = strmid(line_str,0,iBegin)
 			curr_Temp = trim_string(curr_Temp)
 			return_type =  get_first_word(curr_Temp)
 			if(symbol.Type == "Method")
@@ -2950,7 +3069,7 @@ macro function_head_comment(hbuf, ln, curr_Func, newFunc)
 				return_type = ""
 			}
 			//从函数头分离出函数参数
-			parameter_len_max = get_word_form_string(hTmpBuf, retract_line, iBegin, strlen(retract_line), "(", "," , ")")
+			parameter_len_max = get_word_form_string(hTmpBuf, line_str, iBegin, strlen(line_str), "(", "," , ")")
 			parameter_sum = GetBufLineCount(hTmpBuf)
 			ln = symbol.lnFirst
 			SetBufIns (hbuf, ln, 0)
@@ -2959,7 +3078,7 @@ macro function_head_comment(hbuf, ln, curr_Func, newFunc)
 	else
 	{
 		parameter_sum = 0
-		retract_line = ""
+		line_str = ""
 		return_type = ""
 	}
 	
@@ -3094,8 +3213,8 @@ macro function_head_comment(hbuf, ln, curr_Func, newFunc)
 		return_type = Ask(return_value_type_msg)
 		if(strlen(return_type) > 0)
 		{
-			PutBufLine(hbuf, ln+1, "@ret_str@: @curr_Ret@")
-			PutBufLine(hbuf, ln+11, "@curr_Ret@ @curr_Func@(   )")
+			PutBufLine(hbuf, ln+1, "@ret_str@: @return_type@")
+			PutBufLine(hbuf, ln+11, "@return_type@ @curr_Func@(   )")
 			SetbufIns(hbuf, ln+11, strlen(return_type)+strlen(curr_Func) + 3
 		}
 		curr_FuncDef = ""
@@ -3247,8 +3366,8 @@ macro create_function_def(hbuf)
 			}
 			else if( symbol.Type == "Method" )
 			{
-				retract_line = GetBufline(hbuf, symbol.lnName)
-				curr_class_name = get_left_word(retract_line, symbol.ichName)
+				line_str = GetBufline(hbuf, symbol.lnName)
+				curr_class_name = get_left_word(line_str, symbol.ichName)
 				symbol.Symbol = curr_class_name
 				ln = create_class_prototype(hbuf, ln, symbol)
 			}
@@ -3273,7 +3392,7 @@ macro create_function_def(hbuf)
 	insert_file_header(hOutbuf, 0, content_str)//插入文件头说明
 }
 
-macro get_left_word(retract_line,ichRight)
+macro get_left_word(line_str,ichRight)
 {
 	if(ich == 0)
 	{
@@ -3282,8 +3401,8 @@ macro get_left_word(retract_line,ichRight)
 	ich = ichRight
 	while(ich > 0)
 	{
-		if( (retract_line[ich] == " ") || (retract_line[ich] == "\t")
-			|| ( retract_line[ich] == ":") || (retract_line[ich] == "."))
+		if( (line_str[ich] == " ") || (line_str[ich] == "\t")
+			|| ( line_str[ich] == ":") || (line_str[ich] == "."))
 		{
 			ich = ich - 1
 			ichRight = ich
@@ -3295,14 +3414,14 @@ macro get_left_word(retract_line,ichRight)
 	}
 	while(ich > 0)
 	{
-		if(retract_line[ich] == " ")
+		if(line_str[ich] == " ")
 		{
 			ich = ich + 1
 			break
 		}
 		ich = ich - 1
 	}
-	return strmid(retract_line,ich,ichRight)
+	return strmid(line_str,ich,ichRight)
 }
 
 macro create_class_prototype(hbuf,ln,symbol)
@@ -3310,23 +3429,23 @@ macro create_class_prototype(hbuf,ln,symbol)
 	isLastLine = 0
 	fIsEnd = 1
 	hOutbuf = GetCurrentBuf()
-	retract_line = GetBufLine (hbuf, symbol.lnName)
+	line_str = GetBufLine (hbuf, symbol.lnName)
 	sline = symbol.lnFirst
 	curr_ClassName = symbol.Symbol
-	ret = string_cmp(retract_line,curr_ClassName)
+	ret = string_cmp(line_str,curr_ClassName)
 	if(ret == 0xffffffff)
 	{
 		return ln
 	}
-	curr_Pre = strmid(retract_line,0,ret)
-	retract_line = strmid(retract_line,symbol.ichName,strlen(retract_line))
-	retract_line = cat(curr_Pre,retract_line)
+	curr_Pre = strmid(line_str,0,ret)
+	line_str = strmid(line_str,symbol.ichName,strlen(line_str))
+	line_str = cat(curr_Pre,line_str)
 	//去掉注释的干扰
-	RetVal = skip_comment_from_string(retract_line,fIsEnd)
+	RetVal = skip_comment_from_string(line_str,fIsEnd)
 	fIsEnd = RetVal.fIsEnd
 	curr_New = RetVal.content_str
-	retract_line = cat("    ",retract_line)
-	curr_New = cat("    ",curr_New)
+	line_str = cat("    ", line_str)
+	curr_New = cat("    ", curr_New)
 	while((isLastLine == 0) && (sline < symbol.lnLim))
 	{
 		i = 0
@@ -3346,22 +3465,22 @@ macro create_class_prototype(hbuf,ln,symbol)
 					//函数参数头结束
 					isLastLine = 1
 					//去掉最后多余的字符
-					retract_line = strmid(retract_line,0,i+1);
-					retract_line = cat(retract_line,";")
+					line_str = strmid(line_str,0,i+1);
+					line_str = cat(line_str,";")
 					break
 				}
 			}
 			i = i + 1
 		}
-		InsBufLine(hOutbuf, ln, "@retract_line@")
+		InsBufLine(hOutbuf, ln, "@line_str@")
 		ln = ln + 1
 		sline = sline + 1
 		if(isLastLine != 1)
 		{
 			//函数参数头还没有结束再取一行
-			retract_line = GetBufLine (hbuf, sline)
+			line_str = GetBufLine (hbuf, sline)
 			//去掉注释的干扰
-			RetVal = skip_comment_from_string(retract_line,fIsEnd)
+			RetVal = skip_comment_from_string(line_str,fIsEnd)
 			curr_New = RetVal.content_str
 			fIsEnd = RetVal.fIsEnd
 		}
@@ -3369,16 +3488,16 @@ macro create_class_prototype(hbuf,ln,symbol)
 	return ln
 }
 
-macro create_func_proc_type(hbuf,ln,curr_Type,symbol)
+macro create_func_proc_type(hbuf, ln, curr_Type, symbol)
 {
 	isLastLine = 0
 	hOutbuf = GetCurrentBuf()
-	retract_line = GetBufLine (hbuf,symbol.lnName)
+	line_str = GetBufLine (hbuf,symbol.lnName)
 	//去掉注释的干扰
-	RetVal = skip_comment_from_string(retract_line,fIsEnd)
+	RetVal = skip_comment_from_string(line_str,fIsEnd)
 	curr_New = RetVal.content_str
 	fIsEnd = RetVal.fIsEnd
-	retract_line = cat("@curr_Type@ ",retract_line)
+	line_str = cat("@curr_Type@ ",line_str)
 	curr_New = cat("@curr_Type@ ",curr_New)
 	sline = symbol.lnFirst
 	while((isLastLine == 0) && (sline < symbol.lnLim))
@@ -3400,23 +3519,23 @@ macro create_func_proc_type(hbuf,ln,curr_Type,symbol)
 					//函数参数头结束
 					isLastLine = 1
 					//去掉最后多余的字符
-					retract_line = strmid(retract_line,0,i+1);
-					retract_line = cat(retract_line,";")
+					line_str = strmid(line_str,0,i+1);
+					line_str = cat(line_str,";")
 					break
 				}
 			}
 			i = i + 1
 		}
-		InsBufLine(hOutbuf, ln, "@retract_line@")
+		InsBufLine(hOutbuf, ln, "@line_str@")
 		ln = ln + 1
 		sline = sline + 1
 		if(isLastLine != 1)
 		{
 			//函数参数头还没有结束再取一行
-			retract_line = GetBufLine (hbuf, sline)
-			retract_line = cat("         ",retract_line)
+			line_str = GetBufLine (hbuf, sline)
+			line_str = cat("         ",line_str)
 			//去掉注释的干扰
-			RetVal = skip_comment_from_string(retract_line,fIsEnd)
+			RetVal = skip_comment_from_string(line_str,fIsEnd)
 			curr_New = RetVal.content_str
 			fIsEnd = RetVal.fIsEnd
 		}
@@ -3512,8 +3631,8 @@ macro create_new_header_file()
 			}
 			else if( symbol.Type == "Method" )
 			{
-				retract_line = GetBufline(hbuf,symbol.lnName)
-				curr_ClassName = get_left_word(retract_line,symbol.ichName)
+				line_str = GetBufline(hbuf,symbol.lnName)
+				curr_ClassName = get_left_word(line_str,symbol.ichName)
 				symbol.Symbol = curr_ClassName
 				ln = create_class_prototype(hbuf,ln,symbol)
 			}
@@ -3522,6 +3641,56 @@ macro create_new_header_file()
 	}
 	sel.lnLast = ln
 	SetWndSel(hwnd,sel)
+}
+
+macro create_header_file()
+{
+	hwnd = GetCurrentWnd()
+	if (hwnd == 0)
+		stop
+	sel = GetWndSel(hwnd)
+	hbuf = GetWndBuf(hwnd)
+
+	create_function_def(hbuf)
+}
+
+macro create_function_header()
+{
+	hwnd = GetCurrentWnd()
+	if (hwnd == 0)
+		stop
+	sel = GetWndSel(hwnd)
+	sel_column_num = sel.lnFirst
+	hbuf = GetWndBuf(hwnd)
+	
+	nVer = get_version()
+	end_column_num = GetBufLineCount(hbuf)
+	if(sel_column_num != end_column_num)
+	{
+		//对于2.1版的si如果是非法symbol就会中断执行，故该为以后一行  是否有‘(’来判断是否是新函数
+		next_line = GetBufLine(hbuf, sel_column_num)
+		if( (string_cmp(next_line,"(") != 0xffffffff) || (nVer != 2 ))
+		{
+			symbol = GetCurSymbol()
+			if(strlen(symbol) != 0)
+			{
+				function_head_comment(hbuf, sel_column_num, symbol, False)
+				return
+			}
+		}
+	}
+	
+	is_english = test_language_is_english()
+	if(True == is_english)
+	{
+		function_name = Ask("Please input function name")
+	}
+	else
+	{
+		function_name = Ask("请输入函数名称:")
+	}
+	
+	function_head_comment(hbuf, sel_column_num, function_name, True)
 }
 
 macro get_word_left_of_ich(ich, temp_str)
@@ -3645,13 +3814,13 @@ macro replace_in_buffer(hbuf,chOld,chNew,nBeg,nEnd,fMatchCase, fRegExp, fWholeWo
 	}
 }
 
-macro get_left_blank(retract_line)
+macro get_left_blank(line_str)
 {
 	nIdx = 0
-	nEndIdx = strlen(retract_line)
+	nEndIdx = strlen(line_str)
 	while( nIdx < nEndIdx )
 	{
-		if( (retract_line[nIdx] !=" ") && (retract_line[nIdx] !="\t") )
+		if( (line_str[nIdx] !=" ") && (line_str[nIdx] !="\t") )
 		{
 			break;
 		}
@@ -3708,9 +3877,9 @@ macro expand_brace_large()
 	ln = sel.lnFirst
 	nlineCount = 0
 	retVal = ""
-	retract_line = GetBufLine( hbuf, ln )
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line, 0, nLeft);
+	line_str = GetBufLine( hbuf, ln )
+	nLeft = get_left_blank(line_str)
+	temp_left = strmid(line_str, 0, nLeft);
 
 	pretty_format = get_pretty_code_left_format()
 	alignment = pretty_format.alignment
@@ -3720,7 +3889,7 @@ macro expand_brace_large()
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		//对于没有块选择的情况，直接插入{}即可
-		if( nLeft == strlen(retract_line) )
+		if( nLeft == strlen(line_str) )
 		{
 			SetBufSelText (hbuf, "{")
 		}
@@ -3748,13 +3917,13 @@ macro expand_brace_large()
 		}
 
 		//取出选中区前的内容
-		curr_Old = strmid(retract_line,0,sel.ichFirst)
+		curr_Old = strmid(line_str,0,sel.ichFirst)
 		if(sel.lnFirst != sel.lnLast)
 		{
 			//对于多行的情况
 			
 			//第一行的选中部分
-			curr_Mid = strmid(retract_line,sel.ichFirst,strlen(retract_line))
+			curr_Mid = strmid(line_str,sel.ichFirst,strlen(line_str))
 			curr_Mid = trim_string(curr_Mid)
 			curr_Last = GetBufLine(hbuf,sel.lnLast)
 			if( sel.ichLim > strlen(curr_Last) )
@@ -3774,17 +3943,17 @@ macro expand_brace_large()
 		else
 		{
 			//对于选择只有一行的情况
-			if(sel.ichLim >= strlen(retract_line))
+			if(sel.ichLim >= strlen(line_str))
 			{
-				sel.ichLim = strlen(retract_line)
+				sel.ichLim = strlen(line_str)
 			}
 
 			//获得选中区的内容
-			curr_Mid = strmid(retract_line,sel.ichFirst,sel.ichLim)
+			curr_Mid = strmid(line_str,sel.ichFirst,sel.ichLim)
 			curr_Mid = trim_string(curr_Mid)
-			if( sel.ichLim > strlen(retract_line) )
+			if( sel.ichLim > strlen(line_str) )
 			{
-				 retract_lineselichLim = strlen(retract_line)
+				 retract_lineselichLim = strlen(line_str)
 			}
 			else
 			{
@@ -3792,7 +3961,7 @@ macro expand_brace_large()
 			}
 
 			//同样得到选中区后的内容
-			curr_Right = strmid(retract_line,retract_lineselichLim,strlen(retract_line))
+			curr_Right = strmid(line_str,retract_lineselichLim,strlen(line_str))
 			curr_Right = trim_string(curr_Right)
 		}
 		nIdx = sel.lnFirst
@@ -3856,48 +4025,48 @@ macro expand_brace_large()
 	return retVal
 }
 
-macro move_comment_left_blank(retract_line)
+macro move_comment_left_blank(line_str)
 {
 	nIdx  = 0
-	iLen = strlen(retract_line)
+	iLen = strlen(line_str)
 	while(nIdx < iLen - 1)
 	{
-		if(retract_line[nIdx] == "/" && retract_line[nIdx+1] == "*")
+		if(line_str[nIdx] == "/" && line_str[nIdx+1] == "*")
 		{
-			retract_line[nIdx] = " "
-			retract_line[nIdx + 1] = " "
+			line_str[nIdx] = " "
+			line_str[nIdx + 1] = " "
 			nIdx = nIdx + 2
 			while(nIdx < iLen - 1)
 			{
-				if(retract_line[nIdx] != " " && retract_line[nIdx] != "\t")
+				if(line_str[nIdx] != " " && line_str[nIdx] != "\t")
 				{
-					retract_line[nIdx - 2] = "/"
-					retract_line[nIdx - 1] = "*"
-					return retract_line
+					line_str[nIdx - 2] = "/"
+					line_str[nIdx - 1] = "*"
+					return line_str
 				}
 				nIdx = nIdx + 1
 			}
 		}
 
-		if(retract_line[nIdx] == "/" && retract_line[nIdx+1] == "/")
+		if(line_str[nIdx] == "/" && line_str[nIdx+1] == "/")
 		{
-			retract_line[nIdx] = " "
-			retract_line[nIdx + 1] = " "
+			line_str[nIdx] = " "
+			line_str[nIdx + 1] = " "
 			nIdx = nIdx + 2
 			while(nIdx < iLen - 1)
 			{
-				if(retract_line[nIdx] != " " && retract_line[nIdx] != "\t")
+				if(line_str[nIdx] != " " && line_str[nIdx] != "\t")
 				{
-					retract_line[nIdx - 2] = "/"
-					retract_line[nIdx - 1] = "/"
-					return retract_line
+					line_str[nIdx - 2] = "/"
+					line_str[nIdx - 1] = "/"
+					return line_str
 				}
 				nIdx = nIdx + 1
 			}
 		}
 		nIdx = nIdx + 1
 	}
-	return retract_line
+	return line_str
 }
 
 macro del_compound_statement()
@@ -3906,21 +4075,21 @@ macro del_compound_statement()
 	sel = GetWndSel(hwnd)
 	hbuf = GetCurrentBuf()
 	ln = sel.lnFirst
-	retract_line = GetBufLine(hbuf,ln )
-	nLeft = get_left_blank(retract_line)
-	temp_left = strmid(retract_line,0,nLeft);
-	Msg("@retract_line@  will be deleted !")
+	line_str = GetBufLine(hbuf,ln )
+	nLeft = get_left_blank(line_str)
+	temp_left = strmid(line_str,0,nLeft);
+	Msg("del_compound_statement()::\"@line_str@\"  will be deleted !")
 	fIsEnd = 1
 	while(1)
 	{
-		RetVal = skip_comment_from_string(retract_line,fIsEnd)
+		RetVal = skip_comment_from_string(line_str,fIsEnd)
 		curr_Tmp = RetVal.content_str
 		fIsEnd = RetVal.fIsEnd
 		//查找复合语句的开始
 		ret = string_cmp(curr_Tmp,"{")
 		if(ret != 0xffffffff)
 		{
-			curr_NewLine = strmid(retract_line,ret+1,strlen(retract_line))
+			curr_NewLine = strmid(line_str,ret+1,strlen(line_str))
 			curr_New = strmid(curr_Tmp,ret+1,strlen(curr_Tmp))
 			curr_New = trim_string(curr_New)
 			if(curr_New != "")
@@ -3981,7 +4150,7 @@ macro del_compound_statement()
 		{
 			break
 		}
-		retract_line = GetBufLine(hbuf,ln)
+		line_str = GetBufLine(hbuf,ln)
 	}
 }
 
@@ -3992,7 +4161,7 @@ macro check_block_brace(hbuf)
 	ln = sel.lnFirst
 	nCount = 0
 	RetVal = ""
-	retract_line = GetBufLine( hbuf, ln )
+	line_str = GetBufLine( hbuf, ln )
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
 	{
 		RetVal.iCount = 0
@@ -4001,7 +4170,7 @@ macro check_block_brace(hbuf)
 	}
 	if(sel.lnFirst == sel.lnLast && sel.ichFirst != sel.ichLim)
 	{
-		RetTmp = skip_comment_from_string(retract_line,fIsEnd)
+		RetTmp = skip_comment_from_string(line_str,fIsEnd)
 		curr_Tmp = RetTmp.content_str
 		RetVal = check_brace(curr_Tmp,sel.ichFirst,sel.ichLim,"{","}",0,1)
 		return RetVal
@@ -4013,20 +4182,20 @@ macro check_block_brace(hbuf)
 		{
 			if(ln == sel.lnFirst)
 			{
-				RetVal = check_brace(retract_line,sel.ichFirst,strlen(retract_line)-1,"{","}",nCount,fIsEnd)
+				RetVal = check_brace(line_str,sel.ichFirst,strlen(line_str)-1,"{","}",nCount,fIsEnd)
 			}
 			else if(ln == sel.lnLast)
 			{
-				RetVal = check_brace(retract_line,0,sel.ichLim,"{","}",nCount,fIsEnd)
+				RetVal = check_brace(line_str,0,sel.ichLim,"{","}",nCount,fIsEnd)
 			}
 			else
 			{
-				RetVal = check_brace(retract_line,0,strlen(retract_line)-1,"{","}",nCount,fIsEnd)
+				RetVal = check_brace(line_str,0,strlen(line_str)-1,"{","}",nCount,fIsEnd)
 			}
 			fIsEnd = RetVal.fIsEnd
 			ln = ln + 1
 			nCount = RetVal.iCount
-			retract_line = GetBufLine( hbuf, ln )
+			line_str = GetBufLine( hbuf, ln )
 		}
 	}
 	return RetVal
@@ -4039,13 +4208,13 @@ macro search_compound_end(hbuf,ln,ichBeg)
 	ln = sel.lnFirst
 	nCount = 0
 	SearchVal = ""
-//    retract_line = GetBufLine( hbuf, ln )
+//    line_str = GetBufLine( hbuf, ln )
 	lnMax = GetBufLineCount(hbuf)
 	fIsEnd = 1
 	while(ln < lnMax)
 	{
-		retract_line = GetBufLine( hbuf, ln )
-		RetVal = check_brace(retract_line,ichBeg,strlen(retract_line)-1,"{","}",nCount,fIsEnd)
+		line_str = GetBufLine( hbuf, ln )
+		RetVal = check_brace(line_str,ichBeg,strlen(line_str)-1,"{","}",nCount,fIsEnd)
 		fIsEnd = RetVal.fIsEnd
 		ichBeg = 0
 		nCount = RetVal.iCount
@@ -4056,7 +4225,7 @@ macro search_compound_end(hbuf,ln,ichBeg)
 			break
 		}
 		ln = ln + 1
-//        retract_line = GetBufLine( hbuf, ln )
+//        line_str = GetBufLine( hbuf, ln )
 	}
 	SearchVal.iCount = RetVal.iCount
 	SearchVal.ich = RetVal.ich
@@ -4064,12 +4233,12 @@ macro search_compound_end(hbuf,ln,ichBeg)
 	return SearchVal
 }
 
-macro check_brace(retract_line, ichBeg, ichEnd, chBeg, chEnd, nCheckCount, isCommentEnd)
+macro check_brace(line_str, ichBeg, ichEnd, chBeg, chEnd, nCheckCount, isCommentEnd)
 {
 	retVal = ""
 	retVal.ich = 0
 	nIdx = ichBeg
-	nLen = strlen(retract_line)
+	nLen = strlen(line_str)
 	if(ichEnd >= nLen)
 	{
 		ichEnd = nLen - 1
@@ -4078,12 +4247,12 @@ macro check_brace(retract_line, ichBeg, ichEnd, chBeg, chEnd, nCheckCount, isCom
 	while(nIdx <= ichEnd)
 	{
 		//如果是/*注释区，跳过该段
-		if( (isCommentEnd == 0) || (retract_line[nIdx] == "/" && retract_line[nIdx+1] == "*"))
+		if( (isCommentEnd == 0) || (line_str[nIdx] == "/" && line_str[nIdx+1] == "*"))
 		{
 			fIsEnd = 0
 			while(nIdx <= ichEnd )
 			{
-				if(retract_line[nIdx] == "*" && retract_line[nIdx+1] == "/")
+				if(line_str[nIdx] == "*" && line_str[nIdx+1] == "/")
 				{
 					nIdx = nIdx + 1
 					fIsEnd  = 1
@@ -4098,15 +4267,15 @@ macro check_brace(retract_line, ichBeg, ichEnd, chBeg, chEnd, nCheckCount, isCom
 			}
 		}
 		//如果是//注释则停止查找
-		if(retract_line[nIdx] == "/" && retract_line[nIdx+1] == "/")
+		if(line_str[nIdx] == "/" && line_str[nIdx+1] == "/")
 		{
 			break
 		}
-		if(retract_line[nIdx] == chBeg)
+		if(line_str[nIdx] == chBeg)
 		{
 			nCheckCount = nCheckCount + 1
 		}
-		if(retract_line[nIdx] == chEnd)
+		if(line_str[nIdx] == chEnd)
 		{
 			nCheckCount = nCheckCount - 1
 			if(nCheckCount == 0)
@@ -4121,61 +4290,61 @@ macro check_brace(retract_line, ichBeg, ichEnd, chBeg, chEnd, nCheckCount, isCom
 	return retVal
 }
 
-macro get_switch_var(retract_line)
+macro get_switch_var(line_str)
 {
-	if( (retract_line == "{") || (retract_line == "}") )
+	if( (line_str == "{") || (line_str == "}") )
 	{
 		return ""
 	}
-	ret = string_cmp(retract_line,"#define" )
+	ret = string_cmp(line_str,"#define" )
 	if(ret != 0xffffffff)
 	{
-		retract_line = strmid(retract_line,ret + 8,strlen(retract_line))
+		line_str = strmid(line_str,ret + 8,strlen(line_str))
 	}
-	retract_line = trim_left(retract_line)
+	line_str = trim_left(line_str)
 	nIdx = 0
-	nLen = strlen(retract_line)
+	nLen = strlen(line_str)
 	while( nIdx < nLen)
 	{
-		if((retract_line[nIdx] == " ") || (retract_line[nIdx] == ",") || (retract_line[nIdx] == "="))
+		if((line_str[nIdx] == " ") || (line_str[nIdx] == ",") || (line_str[nIdx] == "="))
 		{
-			retract_line = strmid(retract_line,0,nIdx)
-			return retract_line
+			line_str = strmid(line_str,0,nIdx)
+			return line_str
 		}
 		nIdx = nIdx + 1
 	}
-	return retract_line
+	return line_str
 }
 
-macro skip_comment_from_string(retract_line,isCommentEnd)
+macro skip_comment_from_string(line_str, isCommentEnd)
 {
 	RetVal = ""
 	fIsEnd = 1
-	nLen = strlen(retract_line)
+	nLen = strlen(line_str)
 	nIdx = 0
 	while(nIdx < nLen )
 	{
 		//如果当前行开始还是被注释，或遇到了注释开始的变标记，注释内容改为空格?
-		if( (isCommentEnd == 0) || (retract_line[nIdx] == "/" && retract_line[nIdx+1] == "*"))
+		if( (isCommentEnd == 0) || (line_str[nIdx] == "/" && line_str[nIdx+1] == "*"))
 		{
 			fIsEnd = 0
 			while(nIdx < nLen )
 			{
-				if(retract_line[nIdx] == "*" && retract_line[nIdx+1] == "/")
+				if(line_str[nIdx] == "*" && line_str[nIdx+1] == "/")
 				{
-					retract_line[nIdx+1] = " "
-					retract_line[nIdx] = " "
+					line_str[nIdx+1] = " "
+					line_str[nIdx] = " "
 					nIdx = nIdx + 1
 					fIsEnd  = 1
 					isCommentEnd = 1
 					break
 				}
-				retract_line[nIdx] = " "
+				line_str[nIdx] = " "
 
 				//如果是倒数第二个则最后一个也肯定是在注释内
 				//if(nIdx == nLen -2 )
 				//{
-				//	retract_line[nIdx + 1] = " "
+				//	line_str[nIdx + 1] = " "
 				//}
 				nIdx = nIdx + 1
 			}
@@ -4188,14 +4357,14 @@ macro skip_comment_from_string(retract_line,isCommentEnd)
 		}
 
 		//如果遇到的是//来注释的说明后面都为注释
-		if(retract_line[nIdx] == "/" && retract_line[nIdx+1] == "/")
+		if(line_str[nIdx] == "/" && line_str[nIdx+1] == "/")
 		{
-			retract_line = strmid(retract_line,0,nIdx)
+			line_str = strmid(line_str,0,nIdx)
 			break
 		}
 		nIdx = nIdx + 1
 	}
-	RetVal.content_str = retract_line;
+	RetVal.content_str = line_str;
 	RetVal.fIsEnd = fIsEnd
 	return RetVal
 }
@@ -4223,25 +4392,25 @@ macro merge_string()
 	}
 	while ( i > 0)
 	{
-		retract_line = GetBufLine(hbuf , i-1)
-		retract_line = trim_left(retract_line)
-		nLen = strlen(retract_line)
-		if(retract_line[nLen - 1] == "-")
+		line_str = GetBufLine(hbuf , i-1)
+		line_str = trim_left(line_str)
+		nLen = strlen(line_str)
+		if(line_str[nLen - 1] == "-")
 		{
-			retract_line = strmid(retract_line,0,nLen - 1)
+			line_str = strmid(line_str,0,nLen - 1)
 		}
-		nLen = strlen(retract_line)
-		if( (retract_line[nLen - 1] != " ") && (AsciiFromChar (retract_line[nLen - 1])  <= 160))
+		nLen = strlen(line_str)
+		if( (line_str[nLen - 1] != " ") && (AsciiFromChar (line_str[nLen - 1])  <= 160))
 		{
-			retract_line = cat(retract_line," ")
+			line_str = cat(line_str," ")
 		}
 		SetBufIns (hbuf, lnLast, 0)
-		SetBufSelText(hbuf,retract_line)
+		SetBufSelText(hbuf,line_str)
 		i = i - 1
 	}
-	retract_line = GetBufLine(hbuf,lnLast)
+	line_str = GetBufLine(hbuf,lnLast)
 	closebuf(hbuf)
-	return retract_line
+	return line_str
 }
 
 /*
@@ -4263,11 +4432,11 @@ macro comment_cpp_to_c()
 	while ( lnCurrent <= lnLast )
 	{
 		ich = 0
-		retract_line = GetBufLine(hbuf,lnCurrent)
-		ilen = strlen(retract_line)
+		line_str = GetBufLine(hbuf,lnCurrent)
+		ilen = strlen(line_str)
 		while ( ich < ilen )
 		{
-			if( (retract_line[ich] != " ") && (retract_line[ich] != "\t") )
+			if( (line_str[ich] != " ") && (line_str[ich] != "\t") )
 			{
 				break
 			}
@@ -4277,7 +4446,7 @@ macro comment_cpp_to_c()
 		if(ich == ilen)
 		{
 			lnCurrent = lnCurrent + 1
-			curr_OldLine = retract_line
+			curr_OldLine = line_str
 			continue
 		}
 		/*如果该行只有一个字符*/
@@ -4290,24 +4459,24 @@ macro comment_cpp_to_c()
 				isCommentContinue = 0
 			}
 			lnCurrent = lnCurrent + 1
-			curr_OldLine = retract_line
+			curr_OldLine = line_str
 			continue
 		}
 		
 		if( isCommentEnd == 1 )
 		{
 			/*如果不是在注释区内*/
-			if(( retract_line[ich]==ch_comment ) && (retract_line[ich+1]==ch_comment))
+			if(( line_str[ich]==ch_comment ) && (line_str[ich+1]==ch_comment))
 			{
 				/* 去掉中间嵌套的注释 */
 				nIdx = ich + 2
 				while ( nIdx < ilen -1 )
 				{
-					if( (( retract_line[nIdx] == "/" ) && (retract_line[nIdx+1] == "*")||
-						 ( retract_line[nIdx] == "*" ) && (retract_line[nIdx+1] == "/") )
+					if( (( line_str[nIdx] == "/" ) && (line_str[nIdx+1] == "*")||
+						 ( line_str[nIdx] == "*" ) && (line_str[nIdx+1] == "/") )
 					{
-						retract_line[nIdx] = " "
-						retract_line[nIdx+1] = " "
+						line_str[nIdx] = " "
+						line_str[nIdx+1] = " "
 					}
 					nIdx = nIdx + 1
 				}
@@ -4315,25 +4484,25 @@ macro comment_cpp_to_c()
 				if( isCommentContinue == 1 )
 				{
 					/* 如果是连续的注释*/
-					retract_line[ich] = " "
-					retract_line[ich+1] = " "
+					line_str[ich] = " "
+					line_str[ich+1] = " "
 				}
 				else
 				{
 					/*如果不是连续的注释则是新注释的开始*/
-					retract_line[ich] = "/"
-					retract_line[ich+1] = "*"
+					line_str[ich] = "/"
+					line_str[ich+1] = "*"
 				}
 				if ( lnCurrent == lnLast )
 				{
 					/*如果是最后一行则在行尾添加结束注释符*/
-					retract_line = cat(retract_line,"  */")
+					line_str = cat(line_str,"  */")
 					isCommentContinue = 0
 				}
 				/*更新该行*/
-				PutBufLine(hbuf,lnCurrent,retract_line)
+				PutBufLine(hbuf,lnCurrent,line_str)
 				isCommentContinue = 1
-				curr_OldLine = retract_line
+				curr_OldLine = line_str
 				lnCurrent = lnCurrent + 1
 				continue
 			}
@@ -4352,12 +4521,12 @@ macro comment_cpp_to_c()
 		while ( ich < ilen - 1 )
 		{
 			//如果是/*注释区，跳过该段
-			if( (isCommentEnd == 0) || (retract_line[ich] == "/" && retract_line[ich+1] == "*"))
+			if( (isCommentEnd == 0) || (line_str[ich] == "/" && line_str[ich+1] == "*"))
 			{
 				isCommentEnd = 0
 				while(ich < ilen - 1 )
 				{
-					if(retract_line[ich] == "*" && retract_line[ich+1] == "/")
+					if(line_str[ich] == "*" && line_str[ich+1] == "/")
 					{
 						ich = ich + 1
 						isCommentEnd = 1
@@ -4371,7 +4540,7 @@ macro comment_cpp_to_c()
 				}
 			}
 
-			if(( retract_line[ich]==ch_comment ) && (retract_line[ich+1]==ch_comment))
+			if(( line_str[ich]==ch_comment ) && (line_str[ich+1]==ch_comment))
 			{
 				/* 如果是//注释*/
 				isCommentContinue = 1
@@ -4379,25 +4548,25 @@ macro comment_cpp_to_c()
 				//去掉期间的/* 和 */注释符以免出现注释嵌套错误
 				while ( nIdx < ilen -1 )
 				{
-					if( (( retract_line[nIdx] == "/" ) && (retract_line[nIdx+1] == "*")||
-						 ( retract_line[nIdx] == "*" ) && (retract_line[nIdx+1] == "/") )
+					if( (( line_str[nIdx] == "/" ) && (line_str[nIdx+1] == "*")||
+						 ( line_str[nIdx] == "*" ) && (line_str[nIdx+1] == "/") )
 					{
-						retract_line[nIdx] = " "
-						retract_line[nIdx+1] = " "
+						line_str[nIdx] = " "
+						line_str[nIdx+1] = " "
 					}
 					nIdx = nIdx + 1
 				}
-				retract_line[ich+1] = "*"
+				line_str[ich+1] = "*"
 				if( lnCurrent == lnLast )
 				{
-					retract_line = cat(retract_line,"  */")
+					line_str = cat(line_str,"  */")
 				}
-				PutBufLine(hbuf,lnCurrent,retract_line)
+				PutBufLine(hbuf,lnCurrent,line_str)
 				break
 			}
 			ich = ich + 1
 		}
-		curr_OldLine = retract_line
+		curr_OldLine = line_str
 		lnCurrent = lnCurrent + 1
 	}
 }
@@ -4412,12 +4581,12 @@ macro comment_line()
 	lnOld = 0
 	while ( lnCurrent <= lnLast )
 	{
-		retract_line = GetBufLine(hbuf,lnCurrent)
+		line_str = GetBufLine(hbuf,lnCurrent)
 		DelBufLine(hbuf,lnCurrent)
-		nLeft = get_left_blank(retract_line)
-		temp_left = strmid(retract_line,0,nLeft);
-		retract_line = trim_string(retract_line)
-		ilen = strlen(retract_line)
+		nLeft = get_left_blank(line_str)
+		temp_left = strmid(line_str,0,nLeft);
+		line_str = trim_string(line_str)
+		ilen = strlen(line_str)
 		if(iLen == 0)
 		{
 			continue
@@ -4426,17 +4595,17 @@ macro comment_line()
 		//去掉期间的/* 和 */注释符以免出现注释嵌套错误
 		while ( nIdx < ilen -1 )
 		{
-			if( (( retract_line[nIdx] == "/" ) && (retract_line[nIdx+1] == "*")||
-				 ( retract_line[nIdx] == "*" ) && (retract_line[nIdx+1] == "/") )
+			if( (( line_str[nIdx] == "/" ) && (line_str[nIdx+1] == "*")||
+				 ( line_str[nIdx] == "*" ) && (line_str[nIdx+1] == "/") )
 			{
-				retract_line[nIdx] = " "
-				retract_line[nIdx+1] = " "
+				line_str[nIdx] = " "
+				line_str[nIdx+1] = " "
 			}
 			nIdx = nIdx + 1
 		}
-		retract_line = cat("/* ",retract_line)
+		line_str = cat("/* ",line_str)
 		lnOld = lnCurrent
-		lnCurrent = comment_content(hbuf,lnCurrent,temp_left,retract_line,1)
+		lnCurrent = comment_content(hbuf,lnCurrent,temp_left,line_str,1)
 		lnLast = lnCurrent - lnOld + lnLast
 		lnCurrent = lnCurrent + 1
 	}
@@ -4445,10 +4614,10 @@ macro comment_line()
 macro comment_cvt_line(lnCurrent, isCommentEnd)
 {
 	hbuf = GetCurrentBuf()
-	retract_line = GetBufLine(hbuf,lnCurrent)
+	line_str = GetBufLine(hbuf,lnCurrent)
 	ch_comment = CharFromAscii(47)
 	ich = 0
-	ilen = strlen(retract_line)
+	ilen = strlen(line_str)
 
 	fIsEnd = 1
 	iIsComment = 0;
@@ -4456,12 +4625,12 @@ macro comment_cvt_line(lnCurrent, isCommentEnd)
 	while ( ich < ilen - 1 )
 	{
 		//如果是/*注释区，跳过该段
-		if( (isCommentEnd == 0) || (retract_line[ich] == "/" && retract_line[ich+1] == "*"))
+		if( (isCommentEnd == 0) || (line_str[ich] == "/" && line_str[ich+1] == "*"))
 		{
 			fIsEnd = 0
 			while(ich < ilen - 1 )
 			{
-				if(retract_line[ich] == "*" && retract_line[ich+1] == "/")
+				if(line_str[ich] == "*" && line_str[ich+1] == "/")
 				{
 					ich = ich + 1
 					fIsEnd  = 1
@@ -4475,23 +4644,23 @@ macro comment_cvt_line(lnCurrent, isCommentEnd)
 				break
 			}
 		}
-		if(( retract_line[ich]==ch_comment ) && (retract_line[ich+1]==ch_comment))
+		if(( line_str[ich]==ch_comment ) && (line_str[ich+1]==ch_comment))
 		{
 			nIdx = ich
 			while ( nIdx < ilen -1 )
 			{
-				if( (( retract_line[nIdx] == "/" ) && (retract_line[nIdx+1] == "*")||
-					 ( retract_line[nIdx] == "*" ) && (retract_line[nIdx+1] == "/") )
+				if( (( line_str[nIdx] == "/" ) && (line_str[nIdx+1] == "*")||
+					 ( line_str[nIdx] == "*" ) && (line_str[nIdx+1] == "/") )
 				{
-					retract_line[nIdx] = " "
-					retract_line[nIdx+1] = " "
+					line_str[nIdx] = " "
+					line_str[nIdx+1] = " "
 				}
 				nIdx = nIdx + 1
 			}
-			retract_line[ich+1] = "*"
-			retract_line = cat(retract_line,"  */")
+			line_str[ich+1] = "*"
+			line_str = cat(line_str,"  */")
 			DelBufLine(hbuf,lnCurrent)
-			insert_line_string(lnCurrent,retract_line)
+			insert_line_string(lnCurrent,line_str)
 			return fIsEnd
 		}
 		ich = ich + 1
@@ -4510,59 +4679,6 @@ macro head_if_def_str(temp_str)
 	iTotalLn = GetBufLineCount (hbuf)
 	insert_line_string( iTotalLn, "#endif /* @temp_str@ */")
 	insert_line_string( iTotalLn, "")
-}
-
-macro create_header_file()
-{
-	hwnd = GetCurrentWnd()
-	if (hwnd == 0)
-		stop
-	sel = GetWndSel(hwnd)
-	hbuf = GetWndBuf(hwnd)
-
-	create_function_def(hbuf)
-}
-
-macro create_function_header()
-{
-	hwnd = GetCurrentWnd()
-	if (hwnd == 0)
-		stop
-	sel = GetWndSel(hwnd)
-	sel_column_num = sel.lnFirst
-	hbuf = GetWndBuf(hwnd)
-	
-	nVer = get_version()
-	end_column_num = GetBufLineCount(hbuf)
-	msg("end_column_num=@end_column_num@")
-	if(sel_column_num != end_column_num)
-	{
-		//对于2.1版的si如果是非法symbol就会中断执行，故该为以后一行  是否有‘(’来判断是否是新函数
-		next_line = GetBufLine(hbuf, sel_column_num)
-		msg("next_line=GetBufLine(hbuf, sel_column_num=@sel_column_num@)=\"@next_line@\"  hbuf=@hbuf@")
-		if( (string_cmp(next_line,"(") != 0xffffffff) || (nVer != 2 ))
-		{
-			symbol = GetCurSymbol()
-			msg("symbol=\"@symbol@\"")
-			if(strlen(symbol) != 0)
-			{
-				function_head_comment(hbuf, sel_column_num, symbol, False)
-				return
-			}
-		}
-	}
-	
-	is_english = test_language_is_english()
-	if(True == is_english)
-	{
-		function_name = Ask("Please input function name")
-	}
-	else
-	{
-		function_name = Ask("请输入函数名称:")
-	}
-	
-	function_head_comment(hbuf, sel_column_num, function_name, True)
 }
 
 /*
