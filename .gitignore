@@ -1,3 +1,4 @@
 #添加忽略的文件或文件夹
 Base.SearchResults
 Base.*
+Base.sip_sym
