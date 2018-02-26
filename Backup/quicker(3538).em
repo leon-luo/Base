@@ -2325,11 +2325,54 @@ The search pattern string is given in pattern.
 	If fWholeWordsOnly then only whole words will cause a match.
 	*/
 	LoadSearchPattern("#", 1, 0, 1)
+	//Search_Forward
+	hprj = GetCurrentProj ()
+	msg("hprj =@hprj@")
+	ret = GetProjName (hprj)
+	//msg("ret =@ret@")
+
+	cbuf = BufListCount()
+	ibuf = 0
+//	while (ibuf < cbuf)
+//	{
+//		msg("ibuf = @ibuf@ cbuf = @cbuf@")
+//		hbuf = BufListItem(ibuf)
+//		// ... do something with buffer hbuf 
+//		ibuf = ibuf + 1
+//		
+//		msg("hbuf = @hbuf@")
+//	}
+
+//	hsyml = SymListNew ()
+//	msg("hsyml = @hsyml@")
+//	csym = SymListCount(hsyml)
+//	msg("1csym = @csym@")
+//	symbolNew1 = nil
+//	symbolNew2 = nil
+//	symbolNew3 = nil
+//	symbolNew1.name = "11"
+//	symbolNew2.name = "11"
+//	symbolNew3.name = "11"
+//	SymListInsert (hsyml, -1, symbolNew1)
+//	SymListInsert (hsyml, -1, symbolNew2)
+//	SymListInsert (hsyml, -1, symbolNew3)
+//	msg("2csym = @csym@")
+//	isym = 0
+//	while (isym < csym)
+//   {
+//   symbol = SymListItem(isym)
+//   // … do something with symbol 
+//   Msg ("symbol name = " # symbol.name)
+//   isym = isym + 1
+//   }
+
+//	SymListFree (hsyml)
 }
 
 macro search_backward()
 {
 	LoadSearchPattern("#", 1, 0, 1)
+	//Search_Backward
 }
 
 macro string_cmp(str1,str2)
