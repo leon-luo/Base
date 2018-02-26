@@ -1884,6 +1884,10 @@ macro auto_expand()
 	line_str = get_curr_line_str()
 	wordinfo = get_word_left_of_ich(sel.ichFirst, line_str)
 
+//	sel.lnFirst = sel.lnLast
+//	sel.ichFirst = wordinfo.ich
+//	sel.ichLim = wordinfo.ich
+
 	hbuf = get_curr_window_buffer_handle()
 	wordinfo.word = restore_command(hbuf, wordinfo.word)  //自动完成简化命令的匹配显示
 	key_str = wordinfo.word
