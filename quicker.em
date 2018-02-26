@@ -1093,71 +1093,77 @@ macro insert_multi_case_proc(hbuf, alignment, retract, nSwitch)
 	return last_line
 }
 
-macro insert_ifdef()
+macro insert_condition_contain(str)
 {
-	temp_str = Ask("Enter #ifdef condition:")
+	temp_str = Ask("Please enter @str@ condition:")
 	if (strlen(temp_str) == 0)
 		stop
 	hwnd = GetCurrentWnd()
-	line_num = get_curr_slect_line_num()
+	lnFirst = get_curr_slect_line_num()
 	pretty_format = get_pretty_code_left_format()
 	alignment = pretty_format.alignment
 	retract = pretty_format.retract
-	
+	sel = get_curr_window_slect()
 	lnLast = GetWndSelLnLast(hwnd)
 	hbuf = GetCurrentBuf()
 	lnMax = GetBufLineCount(hbuf)
+
+	begin_str = "@alignment@@str@ @temp_str@"
+	middle_str = "@retract@#"
+	end_str = "@alignment@#endif /* @str@ @temp_str@ */"
+
+	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	{
+		PutBufLine(hbuf, lnFirst, begin_str)
+	}
+	else
+	{
+		insert_line_string( lnFirst, begin_str)
+	}
+	
 	if(lnLast + 1 < lnMax)
 	{
-		insert_line_string( line_num+1, "@retract@#")
-		insert_line_string( line_num+2, "@alignment@#endif /* @temp_str@ */")
+		if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+		{
+			insert_line_string( lnFirst+1, middle_str)
+			insert_line_string( lnLast+2, end_str)
+			last_line = lnLast + 2
+		}
+		else if ((lnFirst < lnLast) && (sel.fExtended == True))
+		{
+			insert_line_string( lnLast+1, end_str)
+		}
 	}
 	else if(lnLast + 1 == lnMax)
 	{
-		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
+		AppendBufLine(hbuf, end_str)
+		last_line = lnLast
 	}
 	else
 	{
 		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
+		AppendBufLine(hbuf, end_str)
+		last_line = lnLast+1
 	}
-	insert_line_string( line_num, "@alignment@#ifdef @temp_str@")
-	SetBufIns(hbuf, line_num + 1, strlen(alignment))
-	last_line = line_num
+	
+	SetBufIns(hbuf, lnFirst + 1, strlen(alignment))
+	
 	return last_line
+}
+
+macro insert_ifcdef()
+{
+	return insert_condition_contain("#if")
+}
+
+macro insert_ifdef()
+{
+	return insert_condition_contain("#ifdef")
 }
 
 macro insert_ifndef()
 {
-	temp_str = Ask("Enter #ifndef condition:")
-	if (strlen(temp_str) == 0)
-		stop
-	hwnd = GetCurrentWnd()
-	line_num = get_curr_slect_line_num()
-	pretty_format = get_pretty_code_left_format()
-	alignment = pretty_format.alignment
-	retract = pretty_format.retract
-	lnLast = GetWndSelLnLast(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
-	if(lnLast + 1 < lnMax)
-	{
-		insert_line_string( line_num+1, "@retract@#")
-		insert_line_string( line_num+2, "@alignment@#endif /* @temp_str@ */")
-	}
-	else if(lnLast + 1 == lnMax)
-	{
-		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@alignment@#endif /* @temp_str@ */")
-	}
-	insert_line_string(line_num, "@alignment@#ifndef @temp_str@")
-	SetBufIns(hbuf, line_num + 1, strlen(alignment))
-	last_line = line_num
-	return last_line
+	return insert_condition_contain("#ifndef")
 }
 
 macro insert_cplusplus(hbuf, line_num)
@@ -1381,39 +1387,6 @@ macro insert_promble_description()
 	line_num = comment_content(hbuf, line_num + 1, temp_left, content_str, 1)
 	last_line = line_num+1
 	return last_line
-}
-
-macro insert_pre_def_if()
-{
-	temp_str = Ask("Enter #if condition:")
-	hwnd = GetCurrentWnd()
-	lnFirst = GetWndSelLnFirst(hwnd)
-	lnLast = GetWndSelLnLast(hwnd)
-	hbuf = GetCurrentBuf()
-	lnMax = GetBufLineCount(hbuf)
-	if(lnMax != 0)
-	{
-		line_str = GetBufLine( hbuf, lnFirst )
-	}
-	nLeft = get_left_blank(line_str)
-	temp_left = strmid(line_str,0,nLeft);
-
-	hbuf = GetCurrentBuf()
-	if(lnLast + 1 < lnMax)
-	{
-		insert_line_string( lnLast+1, "@temp_left@#endif /* #if @temp_str@ */")
-	}
-	else if(lnLast + 1 == lnMax)
-	{
-		AppendBufLine(hbuf, "@temp_left@#endif /* #if @temp_str@ */")
-	}
-	else
-	{
-		AppendBufLine(hbuf, "")
-		AppendBufLine(hbuf, "@temp_left@#endif /* #if @temp_str@ */")
-	}
-	insert_line_string( lnFirst, "@temp_left@#if  @temp_str@")
-	SetBufIns(hbuf,lnFirst + 1,strlen(temp_left))
 }
 
 macro insert_comment()
@@ -1889,7 +1862,7 @@ macro auto_expand()
 	sel = GetWndSel(hwnd)
 	if(sel.lnFirst != sel.lnLast)
 	{
-		block_command_proc()                            //块选择命令处理
+		expand_block_command()                            //块选择命令处理
 	}
 	
 	if (sel.ichFirst == 0)
@@ -1899,17 +1872,64 @@ macro auto_expand()
 	line_str = get_curr_line_str()
 	wordinfo = get_word_left_of_ich(sel.ichFirst, line_str)
 	temp = wordinfo.word
-	key_str = restore_command(temp)  //自动完成简化命令的匹配显示
+	key_str = command_line_completion(temp)  //自动完成简化命令的匹配显示
 	line_num = get_curr_slect_line_num()                  //当前所在行
-	expand_control_structures(key_str, line_num)
-	expand_define(key_str, line_num)
-	expand_revise_response(key_str, line_num)
-	expand_sundry_response(key_str, line_num)
+
+	if (True == expand_configuration(key_str, line_num))
+	{}
+	else if (True == expand_problem_number(key_str, line_num))
+	{}
+	else if (True == expand_condition_control(key_str, line_num))
+	{}
+	else if (True == expand_cycle_control(key_str, line_num))
+	{}
+	else if (True == expand_data_structures(key_str, line_num))
+	{}
+	else if (True == expand_control_contain(key_str, line_num))
+	{}
+	else if (True == expand_revise_response(key_str, line_num))
+	{}
+	else if (True == expand_sundry_response(key_str, line_num))
+	{}
 }
 
-macro expand_control_structures(key_str, line_num)
+macro expand_configuration(key_str, line_num)
+{
+	if (key_str == "config")                //配置命令执行
+	{
+		delect_line(line_num)
+		configure_system()
+	}
+	else if (key_str == "language")         //配置语言
+	{
+		delect_line(line_num)
+		cfg_language()
+	}
+	else if (key_str == "author")           //配置作者名字
+	{
+		delect_line(line_num)
+		cfg_author()
+	}
+}
+
+macro expand_problem_number(key_str, line_num)
+{
+	if (key_str == "pn") //问题单号的处理
+	{
+		delect_line(line_num)
+		add_promble_number()
+	}
+	else if (key_str == "ap")//添加问题序号描述
+	{
+		line_num = insert_promble_description()
+		delect_line(line_num)
+	}
+}
+
+macro expand_condition_control(key_str, line_num)
 {
 	flag = True
+	
 	if (key_str == "if")
 	{
 		line_num = insert_if()
@@ -1930,7 +1950,25 @@ macro expand_control_structures(key_str, line_num)
 	{
 		line_num = insert_if_elseif_else()
 	}
-	else if (key_str == "for")
+	else
+	{
+		flag = False
+	}
+
+	if (True == flag)
+	{
+		next_line = line_num+1
+		delect_line(next_line)
+	}
+	
+	return flag
+}
+
+macro expand_cycle_control(key_str, line_num)
+{
+	flag = True
+	
+	if (key_str == "for")
 	{
 		line_num = insert_for()
 	}
@@ -1950,7 +1988,25 @@ macro expand_control_structures(key_str, line_num)
 	{
 		line_num = insert_case()
 	}
-	else if (key_str == "struct")
+	else
+	{
+		flag = False
+	}
+
+	if (True == flag)
+	{
+		next_line = line_num+1
+		delect_line(next_line)
+	}
+	
+	return flag
+}
+
+macro expand_data_structures(key_str, line_num)
+{
+	flag = True
+	
+	if (key_str == "struct")
 	{
 		line_num = insert_struct()
 	}
@@ -1965,59 +2021,65 @@ macro expand_control_structures(key_str, line_num)
 
 	if (True == flag)
 	{
-		msg("line=@line_num@")
-		delect_line(line_num+1)
+		next_line = line_num+1
+		delect_line(next_line)
 	}
 
-	//search_forward()
+	return flag
 }
 
-macro expand_define(key_str, line_num)
+macro expand_control_contain(key_str, line_num)
 {
 	flag = True
-	if (key_str == "#ifdef")
+	
+	if(key_str == "#ifdef")
 	{
 		line_num = insert_ifdef()
-		delect_line(line_num+1)
 	}
 	else if (key_str == "#ifndef")
 	{
 		line_num = insert_ifndef()
-		delect_line(line_num+1)
 	}
-	else if (key_str == "#if")
+	else if (key_str == "#ifcondition")
 	{
-		delect_line(line_num)
-		insert_pre_def_if()
-		return
+		line_num = insert_ifcdef()
+	}
+	else
+	{
+		flag = False
+	}
+	
+	return flag
+}
+
+macro expand_revise_double_line(key_str, line_num)
+{
+	flag = True
+	if (key_str == "abg")
+	{
+		line_num = insert_revise_add()
+	}
+	else if (key_str == "dbg")
+	{
+		line_num = insert_revise_del()
+	}
+	else if (key_str == "mbg")
+	{
+		line_num = insert_revise_modify()
 	}
 	else
 	{
 		flag = False
 	}
 
-	if (True == flag)
-	{
-		delect_line(line_num+1)
-	}
+	return flag
 }
 
-macro expand_revise_response(key_str, line_num)
+macro expand_revise_single_line(key_str, line_num)
 {
 	flag = True
-	if (key_str == "pn") //问题单号的处理
-	{
-		delect_line(line_num)
-		add_promble_number()
-		return
-	}
-	else if (key_str == "ap")
-	{
-		line_num = insert_promble_description()
-		delect_line(line_num)
-		return
-	}
-	else if (key_str == "ab")
+	
+	if (key_str == "ab")
 	{
 		line_num = insert_revise_add_begin(line_num)
 	}
@@ -2041,21 +2103,6 @@ macro expand_revise_response(key_str, line_num)
 	{
 		line_num = insert_revise_modify_end(line_num)
 	}
-	else if (key_str == "abg")
-	{
-		line_num = insert_revise_add()
-		flag = False
-	}
-	else if (key_str == "dbg")
-	{
-		line_num = insert_revise_del()
-		flag = False
-	}
-	else if (key_str == "mbg")
-	{
-		line_num = insert_revise_modify()
-		flag = False
-	}
 	else
 	{
 		flag = False
@@ -2065,27 +2112,30 @@ macro expand_revise_response(key_str, line_num)
 	{
 		delect_line(line_num+1)
 	}
+
+	return flag
+}
+
+macro expand_revise_response(key_str, line_num)
+{
+	flag = False
+	
+	if (True == expand_revise_single_line(key_str, line_num))
+	{
+		flag = True
+	}
+	else if (True == expand_revise_double_line(key_str, line_num))
+	{
+		flag = True
+	}
+
+	return flag
 }
 
 macro expand_sundry_response(key_str, line_num)
 {
 	hbuf = get_curr_window_buffer_handle()
-	if (key_str == "config")                //配置命令执行
-	{
-		delect_line(line_num)
-		configure_system()
-	}
-	else if (key_str == "language")         //配置语言
-	{
-		delect_line(line_num)
-		cfg_language()
-	}
-	else if (key_str == "author")           //配置作者名字
-	{
-		delect_line(line_num)
-		cfg_author()
-	}
-	else if (key_str == "history")          //修改历史记录更新
+	if (key_str == "history")          //修改历史记录更新
 	{
 		delect_line(line_num)
 		insert_history_info(hbuf, line_num)
@@ -2140,106 +2190,63 @@ macro expand_sundry_response(key_str, line_num)
 	}
 }
 
-macro block_command_proc()
+macro expand_block_command()
 {
-	line_num = get_curr_slect_line_num()
-	if(line_num > 0)
-	{
-		line_num--
-	}
+	flag = True
 	
 	line_str = get_curr_line_str()
 	key_str = trim_string(line_str)
-	if(key_str == "while" || key_str == "wh")
-	{
-		insert_while()                    //插入while
-	}
-	else if(key_str == "do")
-	{
-		insert_do_while()                 //插入do while语句
-	}
-	else if(key_str == "for")
-	{
-		insert_for()                      //插入for语句
-	}
-	else if(key_str == "if")
-	{
-		insert_if()                       //插入if语句
-	}
-	else if(key_str == "el" || key_str == "else")
-	{
-		insert_else()                     //插入else语句
-		stop
-	}
-	else if((key_str == "#ifd") || (key_str == "#ifdef"))
-	{
-		insert_ifdef()                    //插入#ifdef
-		stop
-	}
-	else if((key_str == "#ifn") || (key_str == "#ifndef"))
-	{
-		insert_ifndef()                   //插入#ifdef
-		stop
-	}
-	else if (key_str == "abg")
-	{
-		key_str()
-		stop
-	}
-	else if (key_str == "dbg")
-	{
-		insert_revise_del()
-		stop
-	}
-	else if (key_str == "mbg")
-	{
-		insert_revise_modify()
-		stop
-	}
-	else if(key_str == "#if")
-	{
-		insert_pre_def_if()
-		stop
-	}
+	line_num = get_curr_slect_line_num()
 	
-	delect_line(line_num)
-	search_forward()
+	if (True == expand_condition_control(key_str, line_num))
+	{}
+	else if (True == expand_cycle_control(key_str, line_num))
+	{}
+	else if (True == expand_control_contain(key_str, line_num))
+	{}
+	else if (True == expand_revise_double_line(key_str, line_num))
+	{}
+	else
+	{
+		flag = False
+	}
+	//msg("expand_block_command() :: line_num=@line_num@; key_str=\"@key_str@\"; flag=@flag@;")
 	stop
 }
 
 /*
-修复补全关键字
+字符串前端匹配。注意:不区分大小写
 */
-macro matching_abbreviation(abbreviation_str, target_str)
+macro string_compare_head(str1, str2, min_len)
 {
 	ret = Invalid
-	target = tolower(target_str)
-	abbreviation = tolower(abbreviation_str)
-	target_len = strlen(target)
-	abbreviation_len = strlen(abbreviation)
+	str1 = tolower(str1)
+	str2 = tolower(str2)
+	str1_len = strlen(str1)
+	str2_len = strlen(str2)
 
 	is_english = test_language_is_english()
 	if(True == is_english)
 	{
-		msg_str = "Please enter at least two characters."
+		msg_str = "Please enter at least @min_len@ characters."
 	}
 	else
 	{
-		msg_str = "请输入至少两个字符。"
+		msg_str = "请输入至少@min_len@个字符。"
 	}
-	
-	if (abbreviation_len < 2)
+	//msg("string_compare_head(@str1@, @str2@, @min_len@)")
+	if (str1_len < min_len)
 	{
 		msg(msg_str)
 		stop
 	}
 	
-	if (abbreviation_len <= target_len)
+	if (str1_len <= str2_len)
 	{
 		ret = False
-		complement = strmid (target, abbreviation_len, target_len)
-		str = cat(abbreviation, complement)
-		if (str == target)
+		complement = strmid (str2, str1_len, str2_len)
+		str = cat(str1, complement)
+		if (str == str2)
 		{
 			ret = True
 		}
@@ -2251,65 +2258,83 @@ macro matching_abbreviation(abbreviation_str, target_str)
 /*
 修复补全关键字
 */
-macro restore_command(key_str)
+macro matching_abbreviation(abbreviation_str, target_str)
 {
-	if(True == matching_abbreviation(key_str, "case"))
+	ret = Invalid
+	min_len = 2 //至少匹配两个字符
+	
+	ret = string_compare_head(abbreviation_str, target_str, min_len)
+
+	return ret
+}
+
+/*
+命令行补全关键字
+*/
+macro command_line_completion(str)
+{
+	key_str = nil
+	if(True == matching_abbreviation(str, "case"))
 	{
 		key_str = "case"
 	}
-	else if(True == matching_abbreviation(key_str, "switch"))
+	else if(True == matching_abbreviation(str, "switch"))
 	{
 		key_str = "switch"
 	}
-	else if(True == matching_abbreviation(key_str, "else"))
+	else if(True == matching_abbreviation(str, "else"))
 	{
 		key_str = "else"
 	}
-	else if(True == matching_abbreviation(key_str, "while"))
+	else if(True == matching_abbreviation(str, "while"))
 	{
 		key_str = "while"
 	}
-	else if (True == matching_abbreviation(key_str, "#ifdef"))
+	else if (True == string_compare_head(str, "#ifcondition", 3))
+	{
+		key_str = "#ifcondition"
+	}
+	else if (True == string_compare_head(str, "#ifdef", 4))
 	{
 		key_str = "#ifdef"
 	}
-	else if (True == matching_abbreviation(key_str, "#ifndef"))
+	else if (True == string_compare_head(str, "#ifndef", 4))
 	{
 		key_str = "#ifndef"
 	}
-	else if if (True == matching_abbreviation(key_str, "struct"))
+	else if if (True == matching_abbreviation(str, "struct"))
 	{
 		key_str = "struct"
 	}
-	else if (True == matching_abbreviation(key_str, "enum"))
+	else if (True == matching_abbreviation(str, "enum"))
 	{
 		key_str = "enum"
 	}
-	else if (True == matching_abbreviation(key_str, "file"))
+	else if (True == matching_abbreviation(str, "file"))
 	{
 		key_str = "file"
 	}
-	else if (True == matching_abbreviation(key_str, "function"))
+	else if (True == matching_abbreviation(str, "function"))
 	{
 		key_str = "function"
 	}
-	else if (True == matching_abbreviation(key_str, "config"))
+	else if (True == matching_abbreviation(str, "config"))
 	{
 		key_str = "config"
 	}
-	else if (True == matching_abbreviation(key_str, "history"))
+	else if (True == matching_abbreviation(str, "history"))
 	{
 		key_str = "history"
 	}
-	else if (True == matching_abbreviation(key_str, "language"))
+	else if (True == matching_abbreviation(str, "language"))
 	{
 		key_str = "language"
 	}
-	else if (True == matching_abbreviation(key_str, "author"))
+	else if (True == matching_abbreviation(str, "author"))
 	{
 		key_str = "author"
 	}
-	
+	msg("command_line_completion() :: str=\"@str@\"; key_str=\"@key_str@\";")
 	return key_str
 }
 
