@@ -2330,15 +2330,7 @@ macro string_compare_head(str1, str2, min_len)
 	str1_len = strlen(str1)
 	str2_len = strlen(str2)
 
-	//is_english = test_language_is_english()
-	//if(True == is_english)
-	//{
-		msg_str = "Please enter at least @min_len@ characters."
-	//}
-	//else
-	//{
-	//	msg_str = "请输入至少@min_len@个字符。"
-	//}
+	msg_str = "Please enter at least @min_len@ characters."
 
 	if (str1_len <= str2_len)
 	{
