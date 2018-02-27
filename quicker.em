@@ -41,52 +41,81 @@ macro cfg_author()
 */
 macro cfg_language()
 {
-	value = getreg(LANGUAGE)
+	variable_str = "LANGUAGE"
+	curr_language = getreg(variable_str)
+	str = tolower(curr_language)
 
-	if(value != 1)
+	msg("Current language is @curr_language@. Do you want to change language?")
+
+	default_language = "English"
+	set_value = Ask("Enter the value to set language. English : 'E' or 'e' or '0'; Chinese : 'C' or 'c' or '1'.")
+	if ( (set_value == 0) || ("E" == toupper(set_value)) )
 	{
-		language_str = "Chinese")
+		str = default_language
+		msg("Input character is '@set_value@'. the variable value is \"@str@\"!")
+	}
+	else if ( (set_value == 1) || ("C" == toupper(set_value)) )
+	{
+		str = "Chinese"
+		msg("Input character is '@set_value@'. the variable value is \"@str@\"!")
+	}
+	else if (set_value == "#")
+	{
+		str = nil
+		msg("Clear the variable @variable_str@ = \"@str@\"!")
 	}
 	else
 	{
-		language_str = "English"
+		str = default_language
+		msg("This language is not supported. set default laguage @variable_str@ = \"@str@\"!")
 	}
 
-	msg("Current language=\"@value@\" is @language_str@. Do you want to change language?")
+	setreg(variable_str, str)
+	curr_language = getreg(variable_str)
+	msg("After change language is @curr_language@.")
+}
 
-	set_value = Ask("Enter the value to set language. Chinese:\"0\"; Englisg:\"1\"")
-
-	if ((set_value != 0) && (set_value != 1))
+/*
+配置公司名称
+*/
+macro cfg_company()
+{
+	variable_str = "COMPANY"
+	default_str  = "_ _ _ Co., Ltd."
+	is_english = test_language_is_english()
+	if(True == is_english)
 	{
-		value = 0
-		return
-	}
-	else if (curr_language == "#")
-	{
-		setreg ("LANGUAGE", "")
-		msg("Clear the environment variable \"LANGUAGE\"!")
-		return
+		example_str = "HUIZHOU BLUEWAY ELECTRONICS Co., Ltd."
+		info_str = "Please input your company. For example \"@example_str@\". '#':set default name; '0':clear company name. "
 	}
 	else
 	{
-		value = set_value
+		example_str = "惠州市蓝微电子有限公司"
+		info_str = "请输入公司名称. 例如 \"@example_str@\"。'#':设置默认公司名称\"@default_str@\"; '0':清除当前公司名称。"
 	}
+	
+	initialize_variable(variable_str, default_str, info_str)
+}
 
-	if(language != 0)
+/*
+配置版权有效期
+*/
+macro cfg_copyright()
+{
+	variable_str = "COPYRIGHT"
+	default_str = "2017-2028"
+	example_str = "2017-2027"
+	is_english = test_language_is_english()
+	if(True == is_english)
 	{
-		//language = 1
-	}
-
-	setreg(LANGUAGE, value)
-	value = getreg(LANGUAGE)
-	if(value != 1)
-	{
-		msg("After change language=\"@value@\" is Chinese.")
+		info_str = "Please input copyright. For example \"@example_str@\". '#':set default name \"@default_str@\"; '0':clear company name. "
 	}
 	else
 	{
-		msg("After change language=\"@value@\" is English.")
+		info_str = "请输入版权有效期。例如 \"@example_str@\"。'#':设置默认\"@default_str@\"; '0':清除当前公司名称。"
 	}
+	
+	initialize_variable(variable_str, default_str, info_str)
 }
 
 /*
@@ -96,6 +125,54 @@ macro configure_system()
 {
 	cfg_language()
 	cfg_author()
+	cfg_copyright()
+	cfg_company()
+}
+
+/*
+初始化设置变量的值
+*/
+macro initialize_variable(name_str, default_str, info_str)
+{
+	variable_name = name_str
+	if(strlen(variable_name) == 0)
+	{
+		Msg("The variable name is invalid!")
+		stop
+	}
+
+	str = GetReg(variable_name)
+
+	is_english = test_language_is_english()
+	if(True == is_english)
+	{
+		msg_str =   "Current variable @variable_name@ = \"@str@\". "
+		input_msg = "Please input a new value:"
+		hint_str =  "['#' : set default \"@default_str@\"] ['0' : clear current value \"\".]"
+	}
+	else
+	{
+		msg_str =   "当前变量 @variable_name@ = \"@str@\"。"
+		input_msg = "请输入一个新的值:"
+		hint_str =  "['#' : 设为默认\"@default_str@\"]     ['0' : 清除为nil\"\"]"
+	}
+
+	StartMsg(msg_str # info_str)
+	
+	input_str = Ask(input_msg # hint_str)
+	if(input_str == "0")
+	{
+		variable_value = nil
+	}
+	else if (input_str == "#")
+	{
+		variable_value = default_str
+	}
+	else
+	{
+		variable_value = input_str
+	}
+	SetReg(variable_name, variable_value)
 }
 
 macro get_curr_window_buffer_handle()
@@ -144,11 +221,14 @@ macro set_curr_slect_window()
 macro test_language_is_english()
 {
 	ret = False
-	language = getreg(LANGUAGE)
-	if(language == 1)
+	curr_language = getreg("LANGUAGE")
+	english_str = "English"
+	len = strlen(english_str)
+	if(True == string_compare_head(curr_language, english_str, len))
 	{
 		ret = True
 	}
+	
 	return ret
 }
 
@@ -173,7 +253,8 @@ macro get_curr_autor_name()
 macro get_system_time()
 {
 	data = nil
-	data = GetSysTime(1)
+	fLocalTime = True
+	data = GetSysTime(fLocalTime) // get the local time 
 	is_english = test_language_is_english()
 	if(False == is_english)
 	{
@@ -190,6 +271,7 @@ macro get_system_time()
 		day_unit = ""
 		msg_str = "Can't get the system time！The default time is @data@"
 	}
+	
 	if(strlen(data.date) == 0)
 	{
 		year= "2018"
@@ -201,7 +283,6 @@ macro get_system_time()
 		data.Year= month
 		data.Month = month
 		data.Day = day
-		data.Date = "@year@" # "@year_unit@" # "@month@" # "@month_unit@" # "@day@" # "@day_unit@"
 		Msg(msg_str)
 	}
 	else
@@ -215,25 +296,7 @@ macro get_system_time()
 		data.Date = getreg(Date)
 	}
 	
-	is_english = test_language_is_english()
-	if(False == is_english)
-	{
-		year_unit = "年"
-		month_unit = "月"
-		day_unit = "日"
-	}
-	else
-	{
-		separate = "/"
-		year_unit = separate
-		month_unit = separate
-		day_unit = ""
-	}
-	data.Date = cat(data.Year, year_unit)
-	data.Date = cat(data.Date, data.Month)
-	data.Date = cat(data.Date, month_unit)
-	data.Date = cat(data.Date, data.Day)
-	data.Date = cat(data.Date, day_unit)
+	data.Date = data.Year # year_unit # data.Month # month_unit # data.Day # day_unit
 
 	return data
 }
@@ -250,16 +313,16 @@ macro get_system_time_date()
 macro get_copyright_str()
 {
 	valid_date_str = "2017-2028"
+	company_str = GetReg("COMPANY")
+	copyright_str = GetReg("COPYRIGHT")
 	is_english = test_language_is_english()
 	if(True == is_english)
 	{
-		company_str = "HUIZHOU BLUEWAY ELECTRONICS Co., Ltd."
-		temp_str = "  Copyright (C), @valid_date_str@, @company_str@"
+		temp_str = "  Copyright (C), @copyright_str@, @company_str@"
 	}
 	else
 	{
-		company_str = "惠州市蓝微电子有限公司"
-		temp_str = "  版权所有 (C), @valid_date_str@, @company_str@"
+		temp_str = "  版权所有 (C), @copyright_str@, @company_str@"
 	}
 	
 	return temp_str
@@ -1455,8 +1518,8 @@ macro insert_file_header(hbuf, ln, content_str)
 		date_str =               "  1.Date        "
 		mender_str =             "    Author      "
 		modification_str =       "    Modification"
-		prototypes_str =         "prototypes"
-		difinition_str =         "difinition"
+		prototypes_str =         " prototypes"
+		difinition_str =         " difinition"
 		initial_draft_str =      "Initial Draft"
 
 		header_files_str =       "include header files list"
@@ -1554,14 +1617,14 @@ macro insert_file_header(hbuf, ln, content_str)
 	curr_line = ln + 18
 	curr_line = insert_comment_string_section(hbuf, curr_line, "@header_files_str@")
 	curr_line = insert_comment_string_section(hbuf, curr_line, "@external_variables_str@")
-	curr_line = insert_comment_string_section(hbuf, curr_line, "@external_function_str@ @describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "@external_function_str@@describe_str@")
 	curr_line = insert_comment_string_section(hbuf, curr_line, "@global_variables_str@")
 	curr_line = insert_comment_string_section(hbuf, curr_line, "@macros_str@")
 	curr_line = insert_comment_string_section(hbuf, curr_line, "@constants_str@")
 	curr_line = insert_comment_string_section(hbuf, curr_line, "@enum_str@")
-	curr_line = insert_comment_string_section(hbuf, curr_line, "struct")
-	curr_line = insert_comment_string_section(hbuf, curr_line, "@class_str@ @describe_str@")
-	curr_line = insert_comment_string_section(hbuf, curr_line, "@internal_function_str@ @describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "@struct_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "@class_str@@describe_str@")
+	curr_line = insert_comment_string_section(hbuf, curr_line, "@internal_function_str@@describe_str@")
 
 	if(strlen(content_str) != 0)
 	{
@@ -1895,21 +1958,44 @@ macro auto_expand()
 
 macro expand_configuration(key_str, line_num)
 {
+	flag = True
+	
 	if (key_str == "config")                //配置命令执行
 	{
-		delect_line(line_num)
+		//delect_line(line_num)
 		configure_system()
 	}
 	else if (key_str == "language")         //配置语言
 	{
-		delect_line(line_num)
+		//delect_line(line_num)
 		cfg_language()
 	}
 	else if (key_str == "author")           //配置作者名字
 	{
-		delect_line(line_num)
+		//delect_line(line_num)
 		cfg_author()
 	}
+	else if (key_str == "copyright")        //配置版权有效期
+	{
+		//delect_line(line_num)
+		cfg_copyright()
+	}
+	else if (key_str == "company")           //配置公司名字
+	{
+		//delect_line(line_num)
+		cfg_company()
+	}
+	else
+	{
+		flag = False
+	}
+
+	if (True == flag)
+	{
+		delect_line(line_num)
+	}
+	
+	return flag
 }
 
 macro expand_problem_number(key_str, line_num)
@@ -2225,20 +2311,33 @@ macro string_compare_head(str1, str2, min_len)
 	str1_len = strlen(str1)
 	str2_len = strlen(str2)
 
-	is_english = test_language_is_english()
-	if(True == is_english)
-	{
+	//is_english = test_language_is_english()
+	//if(True == is_english)
+	//{
 		msg_str = "Please enter at least @min_len@ characters."
-	}
-	else
+	//}
+	//else
+	//{
+	//	msg_str = "请输入至少@min_len@个字符。"
+	//}
+
+	if (str1_len <= str2_len)
 	{
-		msg_str = "请输入至少@min_len@个字符。"
+		head_str = strmid (str2, 0, str1_len)
+		if(head_str != str1)
+		{
+			return ret
+		}
+		else if ((str1_len == str2_len) && (str1 == str1))
+		{
+			return True
+		}
 	}
-	//msg("string_compare_head(@str1@, @str2@, @min_len@)")
+	
+	//Msg("string_compare_head(@str1@, @str2@, @min_len@)")
 	if (str1_len < min_len)
 	{
-		msg(msg_str)
-		stop
+		Msg(msg_str)
 	}
 	
 	if (str1_len <= str2_len)
@@ -2334,7 +2433,16 @@ macro command_line_completion(str)
 	{
 		key_str = "author"
 	}
-	msg("command_line_completion() :: str=\"@str@\"; key_str=\"@key_str@\";")
+	else if (True == string_compare_head(str, "copyright", 3))
+	{
+		key_str = "copyright"
+	}
+	else if (True == string_compare_head(str, "company", 3))
+	{
+		key_str = "company"
+	}
+
+	//msg("command_line_completion() :: str=\"@str@\"; key_str=\"@key_str@\";")
 	return key_str
 }
 
