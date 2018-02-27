@@ -1541,6 +1541,7 @@ macro insert_file_header(hbuf, ln, content_str)
 		prototypes_str =         " prototypes"
 		difinition_str =         " difinition"
 		initial_draft_str =      "Initial Draft"
+		create_file_str =        "Created file"
 
 		header_files_str =       "include header files list"
 		external_variables_str = "external variables"
@@ -1570,6 +1571,7 @@ macro insert_file_header(hbuf, ln, content_str)
 		prototypes_str =         "声明"
 		difinition_str =         "定义"
 		initial_draft_str =      "初稿"
+		create_file_str =        "创建文件"
 
 		header_files_str =       "包含头文件"
 		external_variables_str = "外部变量"
@@ -1619,7 +1621,7 @@ macro insert_file_header(hbuf, ln, content_str)
 	insert_line_string( ln + 12, "@history_str@ :")
 	insert_line_string( ln + 13, "@date_str@ : @curr_date_str@")
 	insert_line_string( ln + 14, "@mender_str@ : @name_str@")
-	insert_line_string( ln + 15, "@modification_str@ : Created file")
+	insert_line_string( ln + 15, "@modification_str@ : @create_file_str@")
 	insert_multiline_comments_end(ln + 16)
 	insert_blank_line( ln + 17)
 	
