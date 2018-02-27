@@ -175,26 +175,6 @@ macro initialize_variable(name_str, default_str, info_str)
 	SetReg(variable_name, variable_value)
 }
 
-/*
-显示查看当前配置信息
-*/
-macro show_configuration_information()
-{
-	author_str = getreg("MYNAME")
-	language_str = getreg("LANGUAGE")
-	date_str = get_system_time()
-	company_str = GetReg("COMPANY")
-	copyright_str = GetReg("COPYRIGHT")
-
-	divide_str = " ;  " 
-	str = "Author : " # author_str # divide_str # 
-		"Language : " # language_str # divide_str # 
-		"Company : " # company_str # divide_str # 
-		"Copyright (C) : " # copyright_str
-
-	Msg (str)
-}
-
 macro get_curr_window_buffer_handle()
 {
 	//Returns the handle of the active, front-most source file window, or returns hNil if no windows are open.
@@ -1982,27 +1962,28 @@ macro expand_configuration(key_str, line_num)
 	
 	if (key_str == "config")                //配置命令执行
 	{
+		//delect_line(line_num)
 		configure_system()
 	}
 	else if (key_str == "language")         //配置语言
 	{
+		//delect_line(line_num)
 		cfg_language()
 	}
 	else if (key_str == "author")           //配置作者名字
 	{
+		//delect_line(line_num)
 		cfg_author()
 	}
 	else if (key_str == "copyright")        //配置版权有效期
 	{
+		//delect_line(line_num)
 		cfg_copyright()
 	}
 	else if (key_str == "company")           //配置公司名字
 	{
+		//delect_line(line_num)
 		cfg_company()
-	}
-	else if(key_str == "showcfg")
-	{
-		show_configuration_information()
 	}
 	else
 	{
@@ -2459,10 +2440,6 @@ macro command_line_completion(str)
 	else if (True == string_compare_head(str, "company", 3))
 	{
 		key_str = "company"
-	}
-	else if (True == string_compare_head(str, "showcfg", 3))
-	{
-		key_str = "showcfg"
 	}
 
 	//msg("command_line_completion() :: str=\"@str@\"; key_str=\"@key_str@\";")
