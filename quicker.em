@@ -915,49 +915,80 @@ macro insert_if()
 		insert_line_string( line_num, alignment)
 		SetWndSel(hwnd,sel)
 	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	insert_line_string( line_num, "@alignment@if ( # )")
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	
+	if (False)
 	{
-		PutBufLine(hbuf, line_num+2, "@retract@#")
+		val = expand_brace_large()
+		insert_line_string( line_num, "@alignment@if ( # )")
+		if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+		{
+			PutBufLine(hbuf, line_num+2, "@retract@#")
+		}
+	}
+	else
+	{
+		PutBufLine(hbuf, line_num,        alignment # "if ( # )")
+		insert_line_string( line_num + 1, alignment # "{")
+		insert_line_string( line_num + 2, retract   #       "#")
+		insert_line_string( line_num + 3, alignment # "}")
 	}
 
 	search_forward()
+	search_pound_sign(line_num, strlen(alignment))
 	last_line = line_num+3
 	return last_line
 }
 
 macro insert_else()
 {
-	hwnd = GetCurrentWnd()
-	sel = GetWndSel(hwnd)
-	hbuf = GetCurrentBuf()
-	line_num = get_curr_slect_line_num()
-	pretty_format = get_pretty_code_left_format()
-	alignment = pretty_format.alignment
-	retract = pretty_format.retract
-	
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+	if(True)
 	{
-		insert_line_string( line_num, alignment)
-		SetWndSel(hwnd,sel)
-	}
-	val = expand_brace_large()
-	temp_left = val.temp_left
-	insert_line_string( line_num, "@alignment@else")
-	if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
-	{
-		PutBufLine(hbuf, line_num+2, "@retract@")
+		pretty_format = get_pretty_code_left_format()
+		alignment = pretty_format.alignment
+		retract = pretty_format.retract
+		hbuf = get_curr_window_buffer_handle()
+		line_num = get_curr_slect_line_num()
+		PutBufLine(hbuf, line_num, alignment # "else ( # )")
+		insert_line_string( line_num + 1, "@alignment@" # "{")
+		insert_line_string( line_num + 2, "@retract@" # "#")
+		insert_line_string( line_num + 3, "@alignment@" # "}")
+		last_line = line_num + 3
 		cursor_pos = strlen(retract)
-		set_cursor_position(line_num+2, cursor_pos)
-		last_line = line_num+3
-		return last_line
+		set_cursor_position(line_num + 2, cursor_pos)
+		search_forward()
 	}
-	
-	cursor_pos = strlen(alignment)+7
-	set_cursor_position(line_num, cursor_pos)
-	last_line = line_num+2
+	else
+	{
+		hwnd = GetCurrentWnd()
+		sel = GetWndSel(hwnd)
+		hbuf = GetCurrentBuf()
+		line_num = get_curr_slect_line_num()
+		pretty_format = get_pretty_code_left_format()
+		alignment = pretty_format.alignment
+		retract = pretty_format.retract
+		
+		if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+		{
+			insert_line_string( line_num, alignment)
+			SetWndSel(hwnd,sel)
+		}
+		
+		val = expand_brace_large()
+		insert_line_string( line_num, "@alignment@else")
+		if(sel.lnFirst == sel.lnLast && sel.ichFirst == sel.ichLim)
+		{
+			PutBufLine(hbuf, line_num+2, "@retract@")
+			cursor_pos = strlen(retract)
+			set_cursor_position(line_num+2, cursor_pos)
+			last_line = line_num+3
+			return last_line
+		}
+		
+		cursor_pos = strlen(alignment)+7
+		set_cursor_position(line_num, cursor_pos)
+		last_line = line_num+2
+	}
+
 	return last_line
 }
 
@@ -1959,7 +1990,6 @@ macro auto_expand()
 	temp = wordinfo.word
 	key_str = command_line_completion(temp)  //自动完成简化命令的匹配显示
 	line_num = get_curr_slect_line_num()                  //当前所在行
-
 	if (True == expand_configuration(key_str, line_num))
 	{}
 	else if (True == expand_problem_number(key_str, line_num))
@@ -2036,7 +2066,6 @@ macro expand_problem_number(key_str, line_num)
 macro expand_condition_control(key_str, line_num)
 {
 	flag = True
-	
 	if (key_str == "if")
 	{
 		line_num = insert_if()
@@ -2067,7 +2096,7 @@ macro expand_condition_control(key_str, line_num)
 		next_line = line_num+1
 		delect_line(next_line)
 	}
-	
+
 	return flag
 }
 
@@ -2458,6 +2487,10 @@ macro command_line_completion(str)
 	{
 		key_str = "showcfg"
 	}
+	else
+	{
+		key_str = str
+	}
 
 	//msg("command_line_completion() :: str=\"@str@\"; key_str=\"@key_str@\";")
 	return key_str
@@ -2480,6 +2513,13 @@ The search pattern string is given in pattern.
 macro search_backward()
 {
 	LoadSearchPattern("#", 1, 0, 1)
+}
+
+//从指定行指定字符开始查找“#”字符
+macro search_pound_sign(line_start_pos, char_start_pos)
+{
+	hbuf = get_curr_window_buffer_handle()
+	SearchInBuf (hbuf, "#", line_start_pos, char_start_pos, 1, 0, 1)
 }
 
 macro string_cmp(str1,str2)
