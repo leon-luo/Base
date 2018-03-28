@@ -338,11 +338,21 @@ macro get_copyright_str()
 	is_english = test_language_is_english()
 	if(True == is_english)
 	{
-		temp_str = "  Copyright (C), @copyright_str@, @company_str@"
+		temp_str = "  Copyright (C)"
 	}
 	else
 	{
-		temp_str = "  版权所有 (C), @copyright_str@, @company_str@"
+		temp_str = "  版权所有 (C)"
+	}
+
+	if(0 < strlen(copyright_str))
+	{
+		temp_str = temp_str # ", " # copyright_str
+	}
+
+	if(0 < strlen(company_str))
+	{
+		temp_str = temp_str # ", " # company_str
 	}
 	
 	return temp_str
