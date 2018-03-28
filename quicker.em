@@ -330,7 +330,10 @@ macro get_system_time_date()
 	return sys_time.Date
 }
 
-macro get_copyright_str()
+/*
+获取版权所属公司相关信息字符串
+*/
+macro get_copyright_company_str()
 {
 	valid_date_str = "2017-2028"
 	company_str = GetReg("COMPANY")
@@ -1627,7 +1630,7 @@ macro insert_file_header(hbuf, ln, content_str)
 		input_description_msg =  "请输入文件功能描述的内容"
 	}
 
-	copyright_str = get_copyright_str()
+	copyright_str = get_copyright_company_str()
 	autor_name = get_curr_autor_name()
 	curr_date_str = get_system_time_date()
 	
