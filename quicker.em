@@ -2871,9 +2871,18 @@ function get_curr_file_type()
 		if(True == ret)
 		{
 			file_type = hxx
+			if( hNil != handle)
+			{
+				Closebuf(handle)
+			}
 			return file_type
 		}
 		index++
+	}
+
+	if( hNil != handle)
+	{
+		Closebuf(handle)
 	}
 	
 	index = 0
@@ -2887,9 +2896,18 @@ function get_curr_file_type()
 		if(True == ret)
 		{
 			file_type = cxx
+			if( hNil != handle)
+			{
+				Closebuf(handle)
+			}
 			return file_type
 		}
 		index++
+	}
+
+	if( hNil != handle)
+	{
+		Closebuf(handle)
 	}
 
 	return file_type
@@ -4957,6 +4975,11 @@ macro switch_cpp_hpp()
 			break
 		}
 		index++
+	}
+
+	if( hNil != handle)
+	{
+		Closebuf(handle)
 	}
 }
 
