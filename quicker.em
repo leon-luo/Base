@@ -3795,8 +3795,8 @@ macro create_new_header_file()
 	//获得当前没有后缀的文件名
 	temp_str = ask("Please input header file name")
 	file_name = get_only_filename(temp_str)
-	msg("temp_str=@temp_str@")
-	msg("file_name=@file_name@")
+	//msg("temp_str=@temp_str@")
+	//msg("file_name=@file_name@")
 	curr_extension = get_filename_extension(temp_str)
 	len = strlen(curr_extension)
 	if(0 < len)
@@ -3808,12 +3808,12 @@ macro create_new_header_file()
 		}
 	}
 
-	msg("curr_extension=@curr_extension@")
+	//msg("curr_extension=@curr_extension@")
 	curr_PreH = toupper(file_name)
-	msg("curr_PreH=@curr_PreH@")
+	//msg("curr_PreH=@curr_PreH@")
 	curr_PreH = cat("__",curr_PreH)
 	curr_extension = toupper(curr_extension)
-	msg("curr_extension = toupper(curr_extension)=@curr_extension@")
+	//msg("curr_extension = toupper(curr_extension)=@curr_extension@")
 	curr_PreH = cat(curr_PreH, "_@curr_extension@__")
 	hOutbuf = NewBuf(temp_str) // create output buffer
 	if (hOutbuf == 0)
