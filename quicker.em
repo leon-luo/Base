@@ -3408,9 +3408,9 @@ macro function_head_comment(hbuf, ln, curr_Func, newFunc)
 	insert_line_string(ln+3, "@output_parameter_str@: @nothing_str@")
 	insert_line_string(ln+4, "@ret_str@: @return_type@") 
 	insert_line_string(ln+5, " ");
-	insert_line_string(ln+6, "@modification_history_str@:")
+	insert_line_string(ln+6, "@modification_history_str@: ")
 	curr_Time = get_system_time_date()
-	insert_line_string( ln+7, "@date_str@:@curr_Time@")
+	insert_line_string( ln+7, "@date_str@: @curr_Time@")
 
 	author_name = get_curr_autor_name()
 	temp_str = "#"
